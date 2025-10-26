@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Security.Cryptography.Xml;
 using Il2CppFusion;
