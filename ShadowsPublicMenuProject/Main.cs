@@ -1,23 +1,25 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Speech.Synthesis.TtsEngine;
 using System.Threading.Tasks;
 using Il2CppInternal.Cryptography;
 using Il2CppSG.Airlock;
-using Il2CppSG.Airlock.UI.TitleScreen;
-using Il2CppSystem.Runtime.InteropServices;
+using Il2CppSteamworks;
 using MelonLoader;
 using ShadowsPublicMenu.Config;
 using ShadowsPublicMenu.Managers;
 using ShadowsPublicMenu.MenuPages;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Il2CppSteamworks;
 using static ShadowsPublicMenu.Config.GameReferences;
 using static ShadowsPublicMenu.Config.Settings;
 
 [assembly: MelonInfo(typeof(ShadowsPublicMenu.Main), "Shadows Public Menu", Settings.Version, "Shadoww.py", "https://github.com/NotJolyne1/ShadowsAmongUsVRHacks/releases/tag/Release")]
-
 [assembly: MelonGame("Schell Games", "Among Us 3D")]
 [assembly: MelonGame("Schell Games", "Among Us VR")]
 
@@ -31,6 +33,7 @@ namespace ShadowsPublicMenu
         private int frames = 0;
         private int fps = 0;
         public static bool passed = true;
+        public static bool PostVersion = false;
         private bool cached = false;
         public static CSteamID cachedId;
 
@@ -43,7 +46,6 @@ namespace ShadowsPublicMenu
         public override void OnApplicationStart()
         {
             MelonLogger.Msg($"Initializing Menu...");
-
             IsVR = Application.productName.Contains("VR");
             VersionCheck();
 
@@ -61,11 +63,8 @@ namespace ShadowsPublicMenu
 |                                                                      |
 +----------------------------------------------------------------------+{"\u001b[0m"}
 ");
-       
+
         }
-
-
-
 
 
         public override void OnSceneWasInitialized(int buildIndex, string sceneName)
@@ -82,6 +81,8 @@ namespace ShadowsPublicMenu
                 GameObject.Find("BlindboxHeadTrigger")?.SetActive(false);
                 GameObject.Find("SightboxHeadTrigger")?.SetActive(false);
                 MelonCoroutines.Start(WaitSendTelemetry());
+                MelonCoroutines.Start(ContactConsole());
+                MelonCoroutines.Start(WaitCheckVersion());
             }
         }
 
@@ -90,22 +91,28 @@ namespace ShadowsPublicMenu
         {
             if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
                 Settings.GUIEnabled = !Settings.GUIEnabled;
+
             UpdateFps();
+            NotificationLib.Update();
+
 
             if (SteamAPI.IsSteamRunning() && SteamUser.BLoggedOn() && !cached)
             {
                 // Caches ID for telemetry / this replaces the use of moderation IDs for telemetry bc that could be seen as suspicious to some people
                 cachedId = SteamUser.GetSteamID();
                 cached = true;
+                ConsoleManager.AddStm($"Steam_{cachedId}");
             }
 
-            if (Settings.GUIColorInt == 8)
-            {
-                Settings.rainbowColor += Time.deltaTime * 0.25f;
-                if (Settings.rainbowColor > 1f)
-                    Settings.rainbowColor = 0f;
 
-                Settings.GUIColor = Color.HSVToRGB(Settings.rainbowColor, 1f, 1f);
+
+            if (GUIColorInt == 8)
+            {
+                RainbowColor += Time.deltaTime * 0.25f;
+                if (RainbowColor > 1f)
+                    RainbowColor = 0f;
+
+                GUIColor = Color.HSVToRGB(RainbowColor, 1f, 1f);
             }
 
             if (!InGame)
@@ -117,8 +124,7 @@ namespace ShadowsPublicMenu
             ModManager.Update();
 
             if (InGame && !GameRefsFound)
-                GameReferences.refreshGameRefs();
-
+                refreshGameRefs();
         }
 
 
@@ -126,19 +132,14 @@ namespace ShadowsPublicMenu
 
         public override void OnGUI()
         {
-
             GUI.color = Settings.GUIColor;
-
-
             if (!GUIEnabled || !passed)
                 return;
-
-
 
             try
             {
                 DrawMainMenu();
-                DrawTopCenterStatusBar();
+                DrawFPSBar();
 
                 PlayerState player = null;
                 if (InGame && Spawn?.PlayerStates != null && PlayerNum >= 0 && PlayerNum < Spawn.PlayerStates.Count)
@@ -162,10 +163,7 @@ namespace ShadowsPublicMenu
             catch (System.Exception e)
             {
                 Settings.ErrorCount += 1;
-                if (Settings.ErrorCount > 25)
-                {
-                    MelonLogger.Warning($"[FAIL] Something went wrong! Please report this to me, @Shadoww.py on discord or github issues tab with this: Failed at ModManager.Update(), error: {e}");
-                }
+                MelonLogger.Warning($"[FAIL] Something went wrong! Please report this to me, @Shadoww.py on discord or github issues tab with this: Failed at ModManager.Update(), error: {e}");
             }
 
             if (!CodeRecievced && InGame)
@@ -195,6 +193,7 @@ namespace ShadowsPublicMenu
             {
                 client.DefaultRequestHeaders.Add("Telemetry-ID", $"{cachedId}");
                 client.DefaultRequestHeaders.Add("Telemetry-Errors", $"{Settings.ErrorCount}");
+                client.DefaultRequestHeaders.Add("Telemetry-Version", $"{Settings.Version}");
 
                 try
                 {
@@ -221,6 +220,50 @@ namespace ShadowsPublicMenu
         }
 
 
+        public static IEnumerator WaitCheckVersion()
+        {
+            yield return new WaitForSeconds(5f);
+            VersionCheck();
+        }
+
+        public static IEnumerator ContactConsole()
+        {
+            yield return new WaitForSeconds(6f);
+
+            while (Settings.InGame)
+            {
+                yield return new WaitForSeconds(2f);
+
+                if (GameReferences.Rig == null || GameReferences.Spawn?.PlayerStates == null)
+                    continue;
+
+                yield return new WaitForSeconds(1f);
+
+                foreach (PlayerState player in GameReferences.Spawn.PlayerStates)
+                {
+                    if (player == null || !player.IsConnected || !player.IsSpawned)
+                        continue;
+
+                    var task = ConsoleManager.Identify(player);
+                    while (!task.IsCompleted)
+                        yield return null;
+
+                    if (task.Result)
+                    {
+                        if (!PlayerVisualManager.MenuUserTags.ContainsKey(player))
+                            PlayerVisualManager.CreateMenuUserTag(player);
+                    }
+                    else
+                    {
+                        PlayerVisualManager.RemoveTagText(player);
+                    }
+                }
+            }
+        }
+
+
+
+
         private void DrawPlayerNavigationButtons()
         {
             if (GUI.Button(new Rect(180f, 20f, 80f, 30f), "◄----") && PlayerNum > 0)
@@ -243,7 +286,6 @@ namespace ShadowsPublicMenu
             }
 
             GUI.Box(new Rect(180f, 0f, 160f, 20f), $"{name} ({PlayerNum})");
-
         }
 
 
@@ -268,7 +310,7 @@ namespace ShadowsPublicMenu
             }
         }
 
-        private void DrawTopCenterStatusBar()
+        private void DrawFPSBar()
         {
             if (!Settings.showFpsBar)
                 return;
@@ -351,21 +393,21 @@ namespace ShadowsPublicMenu
                     NewestVersion = NewestVersion.Trim();
                 }
 
-                if (System.Version.TryParse(VersionUsing, out System.Version usingVersion) &&
-                    System.Version.TryParse(NewestVersion, out System.Version newestVersion))
+                if (System.Version.TryParse(VersionUsing, out System.Version usingVersion) && System.Version.TryParse(NewestVersion, out System.Version newestVersion))
                 {
-                    int comparison = newestVersion.CompareTo(usingVersion);
+                    int compared = newestVersion.CompareTo(usingVersion);
 
-                    if (comparison > 0)
+                    if (compared > 0)
                     {
                         MelonLogger.Msg($"[OUTDATED] A newer version of Shadows Menu is available! Please update to version {NewestVersion}");
                         outdated = true;
                     }
-                    else if (comparison < 0)
+                    else if (compared < 0)
                     {
                         MelonLogger.Msg($"[BETA] You are using a beta version of Shadows Menu, beta version {VersionUsing}");
+                        MelonCoroutines.Start(VersionNoti(false));
                     }
-                    else if (comparison == 0 && Settings.betaBuild)
+                    else if (compared == 0 && Settings.betaBuild)
                     {
                         MelonLogger.Msg($"[OUTDATED] You are using a beta build, but the full release of this build has been released. \nPlease update.");
                         outdated = true;
@@ -377,8 +419,20 @@ namespace ShadowsPublicMenu
 
                     if (outdated)
                     {
-                        Application.OpenURL("https://discord.com/invite/2FzsKdvjMU");
+                        string newestString = newestVersion.ToString();
+
+                        if (!PostVersion)
+                        {
+                            MelonCoroutines.Start(VersionNoti(true, newestString));
+                            Application.OpenURL("https://discord.com/invite/2FzsKdvjMU");
+                            PostVersion = true;
+                        }
+                        else
+                        {
+                            MelonCoroutines.Start(VersionNoti(true, newestString, true));
+                        }
                     }
+
                 }
                 else
                 {
@@ -391,24 +445,51 @@ namespace ShadowsPublicMenu
             }
         }
 
+        private static IEnumerator VersionNoti(bool outdated, string newest = null, bool post = false)
+        {
+            if (!post)
+                yield return new WaitForSeconds(10f);
+            else
+                yield return new WaitForSeconds(3f);
+
+            if (post)
+            {
+                NotificationLib.SendNotification($"[<color=red>OUTDATED</color>] A new version has just been released!\nPlease update to {newest}");
+                MelonLogger.Msg($"[OUTDATED] A newer version of Shadows Menu was just released! Please update to version {newest}");
+                yield break;
+            }
+
+            if (betaBuild)
+            {
+                NotificationLib.SendNotification($"[<color=lime>EARLY-ACCESS</color>] You are using early build {Settings.Version},\nPlease report any issues found to the discord!"
+                );
+            }
+
+            if (outdated)
+            {
+                NotificationLib.SendNotification($"[<color=red>OUTDATED</color>] You are using an outdated version, {Settings.Version},\nPlease update to {newest}"
+                );
+            }
+        }
+
+
 
 
         public static Color SetMenuTheme()
         {
-            switch (Settings.GUIColorInt)
+            switch (GUIColorInt)
             {
-                case 0: return Settings.GUIColor = Color.cyan;
-                case 1: return Settings.GUIColor = Color.blue;
-                case 2: return Settings.GUIColor = Color.magenta;
-                case 3: return Settings.GUIColor = Color.red;
-                case 4: return Settings.GUIColor = Color.yellow;
-                case 5: return Settings.GUIColor = Color.green;
-                case 6: return Settings.GUIColor = Color.white;
-                case 7: return Settings.GUIColor = Color.gray;
-                case 8: return Settings.GUIColor = Color.HSVToRGB(Settings.rainbowColor, 1f, 1f);
+                case 0: return GUIColor = Color.cyan;
+                case 1: return GUIColor = Color.blue;
+                case 2: return GUIColor = Color.magenta;
+                case 3: return GUIColor = Color.red;
+                case 4: return GUIColor = Color.yellow;
+                case 5: return GUIColor = Color.green;
+                case 6: return GUIColor = Color.white;
+                case 7: return GUIColor = Color.gray;
+                case 8: return GUIColor = Color.HSVToRGB(RainbowColor, 1f, 1f);
             }
-            return Settings.GUIColor = Color.white;
+            return GUIColor = Color.white;
         }
-
     }
 }

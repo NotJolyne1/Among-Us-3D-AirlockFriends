@@ -1,0 +1,152 @@
+﻿using MelonLoader;
+using UnityEngine;
+using System.Collections.Generic;
+using ShadowsPublicMenu.Config;
+using System;
+
+namespace ShadowsPublicMenu.Managers
+{
+    public class NotificationLib : MonoBehaviour
+    {
+        private class Notification
+        {
+            public TextMesh textMesh;
+            public float SpawnTime;
+        }
+
+        private static GameObject textHolder;
+        private static List<Notification> Notifications = new List<Notification>();
+        private static bool initialized = false;
+        private static Font font;
+
+        public static void SendNotification(string text, bool force = false)
+        {
+            try
+            {
+                if (!Settings.ShowNotifications && !force)
+                    return;
+
+                var cam = Camera.main;
+                if (cam == null || cam.gameObject == null)
+                    return;
+
+                if (!initialized)
+                {
+                    initialized = true;
+                    if (textHolder == null)
+                        textHolder = new GameObject("NotificationLibHolder");
+
+                    font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                }
+
+                if (textHolder == null)
+                    textHolder = new GameObject("NotificationLibHolder");
+
+                var textObj = new GameObject("NotificationObj");
+                textObj.transform.parent = textHolder.transform;
+
+                var textMesh = textObj.AddComponent<TextMesh>();
+                textMesh.font = font;
+                textMesh.fontSize = 45;
+                textMesh.characterSize = 0.015f;
+                textMesh.color = Color.white;
+                textMesh.alignment = TextAlignment.Left;
+                textMesh.anchor = TextAnchor.LowerLeft;
+                textMesh.richText = true;
+                textMesh.text = text;
+
+                Notifications.Insert(0, new Notification
+                {
+                    textMesh = textMesh,
+                    SpawnTime = Time.time
+                });
+
+                UpdatePositions();
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"[NotificationLib] SendNotification failed: {ex}");
+            }
+        }
+
+        private static void UpdatePositions()
+        {
+            if (Camera.main == null)
+                return;
+
+            Transform Cam = Camera.main.transform;
+            Vector3 basePos;
+
+            if (Settings.IsVR)
+            {
+                basePos = Cam.position + Cam.forward * 2f - Cam.up * 0.7f - Cam.right * 1f;
+            }
+            else
+            {
+                if (GameReferences.GameState != null)
+                {
+                    if (GameReferences.GameState.InTaskState())
+                    {
+                        basePos = Cam.position + Cam.forward * 2f - Cam.up * 0.30f - Cam.right * 1.5f;
+                    }
+                    else if (GameReferences.GameState.InLobbyState() || GameReferences.GameState.InVotingState())
+                    {
+                        basePos = Cam.position + Cam.forward * 2f - Cam.up * 0.7f - Cam.right * 1.8f;
+                    }
+                    else
+                    {
+                        basePos = Cam.position + Cam.forward * 2f
+                            - Cam.up * (Settings.InGame ? 0.2f : 0.6f)
+                            - Cam.right * (Settings.InGame ? 1f : 1.7f);
+                    }
+                }
+                else
+                {
+                    basePos = Cam.position + Cam.forward * 2f
+                        - Cam.up * (Settings.InGame ? 0.2f : 0.6f)
+                        - Cam.right * (Settings.InGame ? 1f : 1.7f);
+                }
+            }
+
+            float Offset = 0f;
+
+            for (int i = 0; i < Notifications.Count; i++)
+            {
+                Notification noti = Notifications[i];
+                if (noti.textMesh == null)
+                    continue;
+
+                float Spacing = 0.14f + (noti.textMesh.text.Split('\n').Length - 1) * 0.05f;
+                Vector3 StackedPos = basePos + Cam.up * Offset;
+                noti.textMesh.transform.position = StackedPos;
+                noti.textMesh.transform.rotation = Cam.rotation;
+                Offset += Spacing;
+            }
+        }
+
+        public static void ClearNotifications()
+        {
+            foreach (var Noti in Notifications)
+                if (Noti.textMesh != null)
+                    Destroy(Noti.textMesh.gameObject);
+            Notifications.Clear();
+        }
+        
+        public static void Update()
+        {
+            if (!initialized || Camera.main == null)
+                return;
+
+            for (int i = Notifications.Count - 1; i >= 0; i--)
+            {
+                if (Time.time - Notifications[i].SpawnTime > Settings.NotiDuration)
+                {
+                    if (Notifications[i].textMesh != null)
+                        Destroy(Notifications[i].textMesh.gameObject);
+                    Notifications.RemoveAt(i);
+                }
+            }
+            UpdatePositions();
+        }
+    }
+}

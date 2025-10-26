@@ -1,14 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Text;
 using Il2Cpp;
 using Il2CppSG.Airlock;
+using Il2CppSG.Airlock.Audio;
 using Il2CppSG.Airlock.Customization;
 using Il2CppSG.Airlock.Network;
+using Il2CppSG.Airlock.Roles;
 using Il2CppSG.Airlock.Sabotage;
+using Il2CppSG.Airlock.UI;
 using Il2CppSG.Airlock.Util;
 using Il2CppSG.Airlock.XR;
+using Il2CppSG.FusionSimulator;
 using MelonLoader;
+using ShadowsPublicMenu.Managers;
 using UnityEngine;
 
 namespace ShadowsPublicMenu.Config
@@ -28,6 +34,10 @@ namespace ShadowsPublicMenu.Config
         public static CustomizationManager Customization;
         public static LightsSabotage Lights;
         public static SabotageManager sabotage;
+        public static VoiceChatManager VC;
+        public static RoleData Role;
+        public static RoleManager roleManager;
+        public static ModerationManager Moderation;
 
 
         public static void refreshGameRefs()
@@ -47,41 +57,41 @@ namespace ShadowsPublicMenu.Config
                 Customization = null;
                 Lights = null;
                 sabotage = null;
-
+                VC = null;
+                Role = null;
+                roleManager = null;
+                Moderation = null;
 
                 reference = "Spawn Manager";
                 Spawn = UnityEngine.Object.FindObjectOfType<SpawnManager>();
-
                 reference = "XRRig";
                 Rig = UnityEngine.Object.FindObjectOfType<XRRig>();
-
                 reference = "Capsule Collider";
                 Collider = Rig.GetComponent<CapsuleCollider>();
-
                 reference = "NetworkedLocomotionPlayer";
                 LocoPlayer = UnityEngine.Object.FindObjectOfType<NetworkedLocomotionPlayer>();
-
                 reference = "PlayerState";
                 Player = UnityEngine.Object.FindObjectOfType<PlayerState>();
-
                 reference = "NetworkedKillBehavior";
                 Killing = UnityEngine.Object.FindObjectOfType<NetworkedKillBehaviour>();
-
                 reference = "GameState";
                 GameState = UnityEngine.Object.FindObjectOfType<GameStateManager>();
-
                 reference = "Airlock Runner";
                 Runner = UnityEngine.Object.FindObjectOfType<AirlockNetworkRunner>();
-
                 reference = "Customization Manager";
                 Customization = UnityEngine.Object.FindObjectOfType<CustomizationManager>();
-
                 reference = "Lights Sabotage";
                 Lights = UnityEngine.Object.FindObjectOfType<LightsSabotage>();
-
                 reference = "SabotageManager";
                 sabotage = UnityEngine.Object.FindObjectOfType<SabotageManager>();
-
+                reference = "Airlock Recored";
+                VC = UnityEngine.Object.FindObjectOfType<VoiceChatManager>();
+                reference = "RoleData";
+                Role = UnityEngine.Object.FindObjectOfType<RoleData>();
+                reference = "RoleManager";
+                roleManager = UnityEngine.Object.FindObjectOfType<RoleManager>();
+                reference = "ModerationManager";
+                Moderation = UnityEngine.Object.FindObjectOfType<ModerationManager>();
                 Settings.GameRefsFound = true;
                 MelonLogger.Msg("Found Game References!");
             }
@@ -91,25 +101,5 @@ namespace ShadowsPublicMenu.Config
                 Settings.ErrorCount += 1;
             }
         }
-
-        public static void RefreshLocomotions()
-        {
-            AllNetorkLocomotions.Clear();
-
-            foreach (PlayerState player in Spawn.PlayerStates)
-            {
-                NetworkedLocomotionPlayer locoPlayer = null;
-
-                GameObject playerObj = GameObject.Find($"NetworkedLocomotionPlayer ({player.PlayerId})");
-                if (playerObj == null) continue;
-
-                locoPlayer = playerObj.GetComponent<NetworkedLocomotionPlayer>();
-                if (locoPlayer == null) continue;
-
-                AllNetorkLocomotions[player] = locoPlayer;
-            }
-        }
-
-
     }
 }

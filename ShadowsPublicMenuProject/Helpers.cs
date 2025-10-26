@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using Il2CppFusion;
 using Il2CppSG.Airlock;
 using Il2CppSG.Airlock.Network;
@@ -39,9 +40,45 @@ namespace ShadowsPublicMenu
             }
         }
 
+        public static PlayerState GetPlayerStateById(int playerId)
+        {
+
+            foreach (PlayerState player in GameReferences.Spawn.PlayerStates)
+            {
+                string playerName = player.NetworkName?.Value ?? "Unknown";
+
+                if (player.PlayerId == playerId)
+                {
+                    return player;
+                }
+            }
+
+            return null;
+        }
 
 
-        public static Color GetColorFromID(int id)
+
+        public static string GetColorHexFromID(int id)
+        {
+            return id switch
+            {
+                0 => "#FF0000",
+                1 => "#0000FF",
+                2 => "#00FF00",
+                3 => "#FF66B3",
+                4 => "#FF8000",
+                5 => "#FFFF00",
+                6 => "#000000",
+                7 => "#FFFFFF",
+                8 => "#800080",
+                9 => "#996633",
+                10 => "#87CEFA",
+                11 => "#90EE90",
+                _ => "#808080"
+            };
+        }
+
+        public static Color GetColorCodeFromID(int id)
         {
             switch (id)
             {
@@ -89,7 +126,7 @@ namespace ShadowsPublicMenu
         {
             foreach (PlayerState state in GameReferences.Spawn.PlayerStates)
             {
-                if (state != null && state.PlayerId == playerRef.RawEncoded)
+                if (state != null && state.PlayerId == playerRef.PlayerId)
                 {
                     return state;
                 }

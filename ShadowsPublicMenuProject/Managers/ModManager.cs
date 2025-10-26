@@ -18,7 +18,7 @@ namespace ShadowsPublicMenu.Managers
     {
 
 
-        
+
         public static void Update()
         {
             if (!Settings.InGame)
@@ -27,24 +27,26 @@ namespace ShadowsPublicMenu.Managers
             try
             {
                 RenderSettings.fog = !Mods.Fullbright;
-                GameReferences.Lights.VFX?.gameObject?.SetActive(!Mods.Fullbright);
+                GameReferences.GameState._preventMatchEnding.Value = Mods.PreventGameEnd;
 
                 if (GameReferences.Rig != null && GameReferences.Rig.PState != null)
-                    Settings.IsHost = GameReferences.Rig.PState.HasStateAuthority;
+                    Settings.IsHost = GameReferences.Rig.PState.PlayerId == 9;
 
                 if (GameReferences.Rig != null)
                 {
                     if (GameReferences.Rig._collider != null)
                         GameReferences.Rig._collider.enabled = !Mods.Noclip;
 
-                    GameReferences.Rig._speed = Mods.Speed ? 20f : 6.5f;
+                    GameReferences.Rig._speed = Mods.Speed ? Settings.SpeedBoost : 6.5f;
                 }
 
-                if (GameReferences.Killing != null && Mods.NoKillCooldown)
+                if (Mods.NoKillCooldown)
                     GameReferences.Killing.SetMaxCooldown(0);
+                if (Mods.NoVentCooldown)
+                    GameReferences.Rig.VentUseCurrent = 0;
 
-                if (Mods.Tracers || Mods.BoxESP)
-                    PlayerVisualManager.DrawVisuals();
+
+                PlayerVisualManager.DrawVisuals();
 
 
 

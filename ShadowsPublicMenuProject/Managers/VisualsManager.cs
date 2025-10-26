@@ -2,6 +2,7 @@
 using Il2CppFusion;
 using Il2CppSG.Airlock;
 using Il2CppSG.Airlock.Network;
+using MelonLoader;
 using ShadowsPublicMenu.Config;
 using UnityEngine;
 
@@ -9,12 +10,96 @@ namespace ShadowsPublicMenu.Managers
 {
     public static class PlayerVisualManager
     {
+        public static bool AdminFound = false;
         private static GameObject espHolder;
         private static GameObject lineRenderHolder;
+        private static GameObject textHolder;
 
         public static Dictionary<PlayerState, GameObject[]> playerESPs = new Dictionary<PlayerState, GameObject[]>();
         public static Dictionary<PlayerState, LineRenderer> playerLines = new Dictionary<PlayerState, LineRenderer>();
+        public static Dictionary<PlayerState, TextMesh> cooldownTexts = new Dictionary<PlayerState, TextMesh>();
         private static Dictionary<PlayerState, NetworkedLocomotionPlayer> playerLocomotions = new Dictionary<PlayerState, NetworkedLocomotionPlayer>();
+        private static Dictionary<PlayerState, (float lastCooldown, float lastUpdateTime)> cooldownCache = new Dictionary<PlayerState, (float, float)>();
+        public static Dictionary<PlayerState, TextMesh> MenuUserTags = new Dictionary<PlayerState, TextMesh>();
+        public static Dictionary<PlayerState, TextMesh> MenuAdminTags = new Dictionary<PlayerState, TextMesh>();
+
+        public static void CreateMenuUserTag(PlayerState state)
+        {
+            if (state == null || MenuUserTags.ContainsKey(state))
+                return;
+
+            if (textHolder == null)
+                textHolder = new GameObject("UserTagESP_Holder");
+
+            GameObject textObj = new GameObject($"TagText_{state.PlayerId}");
+            textObj.transform.parent = textHolder.transform;
+            TextMesh mesh = textObj.AddComponent<TextMesh>();
+
+            mesh.fontSize = 60;
+            mesh.characterSize = 0.03f;
+            mesh.color = Color.magenta;
+            mesh.alignment = TextAlignment.Center;
+            mesh.anchor = TextAnchor.MiddleCenter;
+            mesh.richText = true;
+            mesh.text = "Shadow's Menu";
+
+            MenuUserTags[state] = mesh;
+        }
+
+
+
+
+        public static void CreateMenuAdminTag(PlayerState state)
+        {
+            if (state == null || MenuAdminTags.ContainsKey(state))
+                return;
+            AdminFound = true;
+            if (textHolder == null)
+                textHolder = new GameObject("UserTagESP_Holder");
+
+            GameObject textObj = new GameObject($"TagText_{state.PlayerId}");
+            textObj.transform.parent = textHolder.transform;
+            TextMesh mesh = textObj.AddComponent<TextMesh>();
+
+            mesh.fontSize = 60;
+            mesh.characterSize = 0.03f;
+            mesh.color = Color.magenta;
+            mesh.alignment = TextAlignment.Center;
+            mesh.anchor = TextAnchor.MiddleCenter;
+            mesh.richText = true;
+            mesh.text = "Admin";
+
+            MenuAdminTags[state] = mesh;
+        }
+
+
+        private static void UpdateMenuUserText(TextMesh mesh, Vector3 pos, Camera cam)
+        {
+            if (mesh == null)
+                return;
+
+            mesh.transform.position = pos + Vector3.up * 1.1f;
+            mesh.transform.rotation = Quaternion.LookRotation(mesh.transform.position - cam.transform.position);
+        }
+
+        private static void UpdateMenuAdminText(TextMesh mesh, Vector3 pos, Camera cam)
+        {
+            if (mesh == null)
+                return;
+
+            mesh.transform.position = pos + Vector3.up * 1.1f;
+            mesh.transform.rotation = Quaternion.LookRotation(mesh.transform.position - cam.transform.position);
+        }
+
+        public static void RemoveTagText(PlayerState state)
+        {
+            if (state == null) return;
+            if (MenuUserTags.TryGetValue(state, out var txt))
+            {
+                if (txt != null) Object.Destroy(txt.gameObject);
+                MenuUserTags.Remove(state);
+            }
+        }
 
         public static void DrawVisuals()
         {
@@ -28,7 +113,6 @@ namespace ShadowsPublicMenu.Managers
             if (cam == null) return;
 
             Vector3 localPos = GameReferences.Rig.transform.position;
-            bool localSpectator = GameReferences.Rig.PState.IsSpectating;
 
             var currentPlayers = new HashSet<PlayerState>();
             foreach (var ps in GameReferences.Spawn.PlayerStates)
@@ -42,13 +126,17 @@ namespace ShadowsPublicMenu.Managers
                 {
                     RemoveESP(state);
                     RemoveTracer(state);
+                    RemoveCooldownText(state);
+                    RemoveTagText(state);
                     continue;
                 }
 
-                if (state.NetworkName?.Value != null && state.NetworkName.Value.Contains("Color##"))
+                if (state.NetworkName.Value.Contains("Color##"))
                 {
                     RemoveESP(state);
                     RemoveTracer(state);
+                    RemoveCooldownText(state);
+                    RemoveTagText(state);
                     continue;
                 }
 
@@ -59,6 +147,8 @@ namespace ShadowsPublicMenu.Managers
                     {
                         RemoveESP(state);
                         RemoveTracer(state);
+                        RemoveCooldownText(state);
+                        RemoveTagText(state);
                         continue;
                     }
 
@@ -67,6 +157,8 @@ namespace ShadowsPublicMenu.Managers
                     {
                         RemoveESP(state);
                         RemoveTracer(state);
+                        RemoveCooldownText(state);
+                        RemoveTagText(state);
                         continue;
                     }
 
@@ -74,8 +166,9 @@ namespace ShadowsPublicMenu.Managers
                 }
 
                 Vector3 targetPos = loco.RigidbodyPosition + new Vector3(0f, 0.6f, 0f);
-                Color playerColor = Helpers.GetColorFromID(state.ColorId);
+                Color playerColor = Helpers.GetColorCodeFromID(state.ColorId);
 
+                // Box ESP
                 if (Mods.BoxESP)
                 {
                     if (!playerESPs.TryGetValue(state, out var esp) || esp == null)
@@ -97,6 +190,92 @@ namespace ShadowsPublicMenu.Managers
                     UpdateTracer(line, localPos, targetPos, playerColor);
                 }
                 else RemoveTracer(state);
+
+                if (Mods.CooldownESP)
+                {
+                    if (!cooldownTexts.TryGetValue(state, out var text) || text == null)
+                    {
+                        text = CreateCooldownText();
+                        cooldownTexts[state] = text;
+                    }
+                    UpdateCooldownText(text, state, targetPos + Vector3.up * 1f, cam);
+                }
+                else RemoveCooldownText(state);
+
+                if (MenuUserTags.TryGetValue(state, out var tagMesh) && tagMesh != null)
+                {
+                    UpdateMenuUserText(tagMesh, targetPos, cam);
+                }
+
+                if (MenuAdminTags.TryGetValue(state, out var AdminTagMesh) && tagMesh != null)
+                {
+                    UpdateMenuAdminText(AdminTagMesh, targetPos, cam);
+                }
+            }
+        }
+
+        private static TextMesh CreateCooldownText()
+        {
+            if (textHolder == null)
+                textHolder = new GameObject("CooldownESP_Holder");
+
+            GameObject textObj = new GameObject("CooldownText");
+            textObj.transform.parent = textHolder.transform;
+            TextMesh mesh = textObj.AddComponent<TextMesh>();
+
+            mesh.fontSize = 60;
+            mesh.characterSize = 0.03f;
+            mesh.color = Color.green;
+            mesh.alignment = TextAlignment.Center;
+            mesh.anchor = TextAnchor.MiddleCenter;
+
+            return mesh;
+        }
+
+        private static void UpdateCooldownText(TextMesh mesh, PlayerState state, Vector3 pos, Camera cam)
+        {
+            if (mesh == null || state == null) return;
+
+            if (GameReferences.GameState != null && GameReferences.GameState.InLobbyState())
+            {
+                cooldownCache.Clear();
+                mesh.text = "";
+                return;
+            }
+
+            mesh.transform.position = pos;
+            mesh.transform.rotation = Quaternion.LookRotation(mesh.transform.position - cam.transform.position);
+
+            float cooldown = state.ActionCooldownRemaining;
+            if (!cooldownCache.TryGetValue(state, out var data))
+                data = (cooldown, Time.time);
+
+            if (Mathf.Abs(data.lastCooldown - cooldown) > 0.001f)
+                data = (cooldown, Time.time);
+
+            cooldownCache[state] = data;
+
+            if (cooldown > -1f)
+            {
+                if ((Time.time - data.lastUpdateTime) > 3f && !GameReferences.GameState.InVotingState() && cooldown != 0 && !state.InVent)
+                    mesh.text = "";
+                else
+                {
+                    mesh.text = $"Cooldown: {cooldown:F1}";
+                    mesh.color = Color.green;
+                }
+            }
+            else mesh.text = "";
+        }
+
+
+        private static void RemoveCooldownText(PlayerState state)
+        {
+            if (state == null) return;
+            if (cooldownTexts.TryGetValue(state, out var txt))
+            {
+                if (txt != null) Object.Destroy(txt.gameObject);
+                cooldownTexts.Remove(state);
             }
         }
 
@@ -108,8 +287,14 @@ namespace ShadowsPublicMenu.Managers
             foreach (var kvp in new Dictionary<PlayerState, LineRenderer>(playerLines))
                 if (!currentPlayers.Contains(kvp.Key) || kvp.Key == null) RemoveTracer(kvp.Key);
 
+            foreach (var kvp in new Dictionary<PlayerState, TextMesh>(cooldownTexts))
+                if (!currentPlayers.Contains(kvp.Key) || kvp.Key == null) RemoveCooldownText(kvp.Key);
+
             foreach (var kvp in new Dictionary<PlayerState, NetworkedLocomotionPlayer>(playerLocomotions))
                 if (!currentPlayers.Contains(kvp.Key) || kvp.Key == null) playerLocomotions.Remove(kvp.Key);
+
+            foreach (var kvp in new Dictionary<PlayerState, TextMesh>(MenuUserTags))
+                if (!currentPlayers.Contains(kvp.Key) || kvp.Key == null) RemoveTagText(kvp.Key);
         }
 
         private static void CleanupAll()
@@ -120,6 +305,14 @@ namespace ShadowsPublicMenu.Managers
             foreach (var kvp in playerLines)
                 if (kvp.Value != null) Object.Destroy(kvp.Value.gameObject);
             playerLines.Clear();
+
+            foreach (var kvp in cooldownTexts)
+                if (kvp.Value != null) Object.Destroy(kvp.Value.gameObject);
+            cooldownTexts.Clear();
+
+            foreach (var kvp in MenuUserTags)
+                if (kvp.Value != null) Object.Destroy(kvp.Value.gameObject);
+            MenuUserTags.Clear();
 
             playerLocomotions.Clear();
         }

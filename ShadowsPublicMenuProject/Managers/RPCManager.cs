@@ -1,11 +1,12 @@
-﻿using Il2CppFusion;
+﻿using System.Collections;
+using System.Linq;
+using Il2CppFusion;
 using Il2CppSG.Airlock;
 using Il2CppSG.Airlock.Graphics;
 using Il2CppSG.Airlock.Roles;
 using Il2CppSG.Airlock.Sabotage;
 using MelonLoader;
 using ShadowsPublicMenu.Config;
-using System.Collections;
 using UnityEngine;
 
 namespace ShadowsPublicMenu.Managers
@@ -21,12 +22,12 @@ namespace ShadowsPublicMenu.Managers
             }
         }
 
-        public static void RPC_KillPlayer(PlayerState target)
+        public static void RPC_TargetedAction(PlayerState target, ProximityTargetedAction action)
         {
             if (Settings.IsHost)
             {
                 PlayerRef targetRef = Helpers.GetPlayerRefFromID(target.PlayerId);
-                GameReferences.Killing.RPC_TargetedAction(targetRef, targetRef, (int)ProximityTargetedAction.Kill);
+                GameReferences.Killing.RPC_TargetedAction(targetRef, targetRef, (int)action);
             }
         }
 
@@ -76,6 +77,34 @@ namespace ShadowsPublicMenu.Managers
             Settings.SabotageActive = true;
             yield return new WaitForSeconds(4f);
             Settings.SabotageActive = false;
+        }
+
+        public static void RPC_GetRole(PlayerState target)
+        {
+            if (GameReferences.roleManager?.gameRoleToPlayerIds != null && GameReferences.roleManager.gameRoleToPlayerIds.Count > 0)
+            {
+                foreach (var kvp in GameReferences.roleManager.gameRoleToPlayerIds)
+                {
+                    GameRole role = kvp.Key;
+                    var il2cppList = kvp.Value;
+
+                    if (il2cppList == null || il2cppList.Count == 0)
+                    {
+                        MelonLogger.Msg($"[Role] {role}: (no players?)");
+                        continue;
+                    }
+
+                    var playerIds = il2cppList.ToArray().ToList();
+
+                    string ids = string.Join(", ", playerIds);
+                    MelonLogger.Msg($"[Role] {role}: {ids}");
+
+                    if (role.ToString().Contains("Imposter"))
+                    {
+                        // optimise later or smth and finish
+                    }
+                }
+            }
         }
     }
 }

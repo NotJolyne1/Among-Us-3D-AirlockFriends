@@ -1,4 +1,6 @@
-﻿namespace ShadowsPublicMenu.Config
+﻿using UnityEngine;
+
+namespace ShadowsPublicMenu.Config
 {
     public class Mods
     {
@@ -13,6 +15,9 @@
         public static bool spazColors;
         public static bool spazAllColors;
         public static bool Fullbright;
-        public static bool DeathLogger;
+        public static bool CooldownESP;
+        public static bool NoVentCooldown;
+        public static bool Freeze;
+        public static bool KillAlerts;
     }
 }
