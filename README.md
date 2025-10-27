@@ -50,6 +50,12 @@ No, the menu is open sourced so you may go through and check the files.
 - Hollow Box ESP
 - Tracers
 - Fullbright
+- Cooldown ESP
+- No Vent Cooldown
+- Kill/Infect Alerts (H)
+- Infect Player (H)
+- Infect Everyone (H)
+- End Game (H)
 
 - Give Imposter (H)
 - Give Wraith (H)
@@ -60,6 +66,7 @@ No, the menu is open sourced so you may go through and check the files.
 - Teleport To Player
 
 - Version Checker
+- NotificationLib
 
 
 # Known bugs
