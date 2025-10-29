@@ -70,5 +70,5 @@ No, the menu is open sourced so you may go through and check the files.
 
 
 # Known bugs
-- ESP Mods lagging on VR
-- ESP Mods not showing on host migration
+- ESP Mods slightly lagging on VR for some people
+- ESP Mods not showing after host migration
