@@ -1,5 +1,5 @@
 # Shadow's Among Us VR Hacks
-The best public Among Us 3D / Among Us VR mod menu, this menu is safe and open sourced, created by Shadoww.py on Discord or Jolyne in game.
+The best public Among Us 3D / Among Us VR mod menu / hacks, this menu is safe and open sourced, created by Shadoww.py on Discord or Jolyne in game.
 
 # This menu was created and is maintained by Jolyne (@Shadoww.py on Discord)
 
