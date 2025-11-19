@@ -14,10 +14,10 @@ using Il2CppSG.Airlock.Util;
 using Il2CppSG.Airlock.XR;
 using Il2CppSG.FusionSimulator;
 using MelonLoader;
-using ShadowsPublicMenu.Managers;
+using AirlockFriends.Managers;
 using UnityEngine;
 
-namespace ShadowsPublicMenu.Config
+namespace AirlockFriends.Config
 {
     public class GameReferences
     {
@@ -38,6 +38,7 @@ namespace ShadowsPublicMenu.Config
         public static RoleData Role;
         public static RoleManager roleManager;
         public static ModerationManager Moderation;
+        public static UILobbyScreenUI Lobby;
 
 
         public static void refreshGameRefs()
@@ -61,6 +62,7 @@ namespace ShadowsPublicMenu.Config
                 Role = null;
                 roleManager = null;
                 Moderation = null;
+                Lobby = null;
 
                 reference = "Spawn Manager";
                 Spawn = UnityEngine.Object.FindObjectOfType<SpawnManager>();
@@ -92,13 +94,14 @@ namespace ShadowsPublicMenu.Config
                 roleManager = UnityEngine.Object.FindObjectOfType<RoleManager>();
                 reference = "ModerationManager";
                 Moderation = UnityEngine.Object.FindObjectOfType<ModerationManager>();
+                reference = "Lobby";
+                Lobby = UnityEngine.Object.FindObjectOfType<UILobbyScreenUI>();
                 Settings.GameRefsFound = true;
                 MelonLogger.Msg("Found Game References!");
             }
             catch (Exception e)
             {
                 MelonLogger.Warning($"[FAIL] Failed to refresh game references! Please report this to me on discord (@Shadoww.py) or github issues tab with this: Failed at: {reference} Error: {e}");
-                Settings.ErrorCount += 1;
             }
         }
     }

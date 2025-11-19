@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "ShadowsPublicMenu": {
+    "AirlockFriends": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

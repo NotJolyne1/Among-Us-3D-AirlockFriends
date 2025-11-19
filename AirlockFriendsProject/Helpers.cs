@@ -5,10 +5,10 @@ using Il2CppFusion;
 using Il2CppSG.Airlock;
 using Il2CppSG.Airlock.Network;
 using MelonLoader;
-using ShadowsPublicMenu.Config;
+using AirlockFriends.Config;
 using UnityEngine;
 
-namespace ShadowsPublicMenu
+namespace AirlockFriends
 {
     public class Helpers
     {
@@ -35,7 +35,6 @@ namespace ShadowsPublicMenu
             catch (System.Exception ex)
             {
                 MelonLogger.Error("[RoomHelper] Failed to get room code: " + ex);
-                Settings.ErrorCount += 1;
                 return "null";
             }
         }

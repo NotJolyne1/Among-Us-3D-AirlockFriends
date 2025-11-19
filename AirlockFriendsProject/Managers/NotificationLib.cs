@@ -1,10 +1,11 @@
-﻿using MelonLoader;
-using UnityEngine;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using ShadowsPublicMenu.Config;
-using System;
+using MelonLoader;
+using AirlockFriends.Config;
+using UnityEngine;
 
-namespace ShadowsPublicMenu.Managers
+namespace AirlockFriends.Managers
 {
     public class NotificationLib : MonoBehaviour
     {
@@ -18,61 +19,55 @@ namespace ShadowsPublicMenu.Managers
         private static List<Notification> Notifications = new List<Notification>();
         private static bool initialized = false;
         private static Font font;
+        private static ConcurrentQueue<string> queuedMessages = new ConcurrentQueue<string>();
+
+        public static void QueueNotification(string text, bool force = false)
+        {
+            if (!Settings.ShowNotifications && !force) return;
+            queuedMessages.Enqueue(text);
+        }
 
         public static void SendNotification(string text, bool force = false)
         {
-            try
+            if (!Settings.ShowNotifications && !force) return;
+
+            var cam = Camera.main;
+            if (cam == null || cam.gameObject == null) return;
+
+            if (!initialized)
             {
-                if (!Settings.ShowNotifications && !force)
-                    return;
-
-                var cam = Camera.main;
-                if (cam == null || cam.gameObject == null)
-                    return;
-
-                if (!initialized)
-                {
-                    initialized = true;
-                    if (textHolder == null)
-                        textHolder = new GameObject("NotificationLibHolder");
-
-                    font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                }
-
-                if (textHolder == null)
-                    textHolder = new GameObject("NotificationLibHolder");
-
-                var textObj = new GameObject("NotificationObj");
-                textObj.transform.parent = textHolder.transform;
-
-                var textMesh = textObj.AddComponent<TextMesh>();
-                textMesh.font = font;
-                textMesh.fontSize = 45;
-                textMesh.characterSize = 0.015f;
-                textMesh.color = Color.white;
-                textMesh.alignment = TextAlignment.Left;
-                textMesh.anchor = TextAnchor.LowerLeft;
-                textMesh.richText = true;
-                textMesh.text = text;
-
-                Notifications.Insert(0, new Notification
-                {
-                    textMesh = textMesh,
-                    SpawnTime = Time.time
-                });
-
-                UpdatePositions();
+                initialized = true;
+                if (textHolder == null) textHolder = new GameObject("NotificationLibHolder");
+                font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             }
-            catch (Exception ex)
+
+            if (textHolder == null) textHolder = new GameObject("NotificationLibHolder");
+
+            var textObj = new GameObject("NotificationObj");
+            textObj.transform.parent = textHolder.transform;
+
+            var textMesh = textObj.AddComponent<TextMesh>();
+            textMesh.font = font;
+            textMesh.fontSize = 45;
+            textMesh.characterSize = 0.015f;
+            textMesh.color = Color.white;
+            textMesh.alignment = TextAlignment.Left;
+            textMesh.anchor = TextAnchor.LowerLeft;
+            textMesh.richText = true;
+            textMesh.text = text;
+
+            Notifications.Insert(0, new Notification
             {
-                MelonLogger.Error($"[NotificationLib] SendNotification failed: {ex}");
-            }
+                textMesh = textMesh,
+                SpawnTime = Time.time
+            });
+
+            UpdatePositions();
         }
 
         private static void UpdatePositions()
         {
-            if (Camera.main == null)
-                return;
+            if (Camera.main == null) return;
 
             Transform Cam = Camera.main.transform;
             Vector3 basePos;
@@ -113,8 +108,7 @@ namespace ShadowsPublicMenu.Managers
             for (int i = 0; i < Notifications.Count; i++)
             {
                 Notification noti = Notifications[i];
-                if (noti.textMesh == null)
-                    continue;
+                if (noti.textMesh == null) continue;
 
                 float Spacing = 0.14f + (noti.textMesh.text.Split('\n').Length - 1) * 0.05f;
                 Vector3 StackedPos = basePos + Cam.up * Offset;
@@ -131,11 +125,15 @@ namespace ShadowsPublicMenu.Managers
                     Destroy(Noti.textMesh.gameObject);
             Notifications.Clear();
         }
-        
+
         public static void Update()
         {
-            if (!initialized || Camera.main == null)
-                return;
+            while (queuedMessages.TryDequeue(out string msg))
+            {
+                SendNotification(msg);
+            }
+
+            if (!initialized || Camera.main == null) return;
 
             for (int i = Notifications.Count - 1; i >= 0; i--)
             {
