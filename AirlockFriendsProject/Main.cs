@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 using static AirlockFriends.Config.Settings;
 using static AirlockFriends.Config.GameReferences;
 
-[assembly: MelonInfo(typeof(AirlockFriends.Main), "AirlockFriends", Settings.Version, "Shadoww.py", "https://github.com/NotJolyne1/ShadowsAmongUsVRHacks/releases/tag/Release")]
+[assembly: MelonInfo(typeof(AirlockFriends.Main), "AirlockFriends", Settings.Version, "Shadoww.py", "githublink")]
 [assembly: MelonGame("Schell Games", "Among Us 3D")]
 [assembly: MelonGame("Schell Games", "Among Us VR")]
 

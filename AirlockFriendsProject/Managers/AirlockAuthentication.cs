@@ -11,23 +11,48 @@ namespace AirlockFriends.Managers
 
         public static string FriendshipAuthentication()
         {
-            string privateKey;
-
-            if (File.Exists(FilePath))
+            try
             {
-                var lines = File.ReadAllLines(FilePath);
-                if (lines.Length >= 1 && !string.IsNullOrEmpty(lines[0]))
+                if (File.Exists(FilePath))
                 {
-                    privateKey = lines[0];
-                    MelonLogger.Msg($"[AirlockFriends] Loaded existing PrivateKey: {privateKey}");
-                    return privateKey;
+                    string key = File.ReadAllText(FilePath);
+
+                    key = key.Replace("\n", "").Replace("\r", "").Trim();
+
+                    if (!string.IsNullOrEmpty(key))
+                    {
+                        MelonLogger.Msg($"[AirlockFriends] Loaded PrivateKey: {key}");
+                        return key;
+                    }
+
+                    MelonLogger.Warning("[AirlockFriends] PrivateKey file empty. Sending empty key to server.");
+                    return "";
+                }
+                else
+                {
+                    File.WriteAllText(FilePath, "");
+                    MelonLogger.Warning("[AirlockFriends] No key file. Created empty key file. Sending empty key to server.");
+                    return "";
                 }
             }
+            catch (Exception ex)
+            {
+                MelonLogger.Error("[AirlockFriends] Error reading PrivateKey: " + ex);
+                return "";
+            }
+        }
 
-            privateKey = Guid.NewGuid().ToString("N");
-            File.WriteAllText(FilePath, privateKey);
-            MelonLogger.Msg($"[AirlockFriends] Generated new PrivateKey: {privateKey}");
-            return privateKey;
+        public static void SaveNewPrivateKey(string privateKey)
+        {
+            try
+            {
+                File.WriteAllText(FilePath, privateKey);
+                MelonLogger.Msg($"[AirlockFriends] [dEBUG] Saved new PrivateKey: {privateKey}");
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error("[AirlockFriends] [DEBUG] Failed to save PrivateKey: " + ex);
+            }
         }
     }
 }

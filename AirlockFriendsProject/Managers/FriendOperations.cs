@@ -17,21 +17,18 @@ namespace AirlockFriends.Managers
 {
     public class AirlockFriendsOperations
     {
-        private static string PrivateKey;
-        private static string FriendCode;
-        private static string FilePath = Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
+        public static string PrivateKey { get; private set; }
+        public static string FriendCode { get; private set; } 
 
         private static ClientWebSocket socket;
         private static CancellationTokenSource _cts;
 
         public static bool IsConnected => socket != null && socket.State == WebSocketState.Open;
 
-        // Call this at startup
         public static async void Initialize()
         {
-            // Load private key from auth class
             PrivateKey = AirlockFriendsAuth.FriendshipAuthentication();
-            MelonLogger.Msg($"[AirlockFriends] Using PrivateKey: {PrivateKey}");
+            MelonLogger.Msg($"[AirlockFriends] [DEBUG] Using PrivateKey: {PrivateKey}");
 
             await ConnectToServer();
 
@@ -44,7 +41,7 @@ namespace AirlockFriends.Managers
 
             socket = new ClientWebSocket();
             _cts = new CancellationTokenSource();
-            socket.Options.SetRequestHeader("User-Agent", "AirlockFriends/1.0");
+            socket.Options.SetRequestHeader("User-Agent", $"AirlockFriends/{Settings.Version}");
 
             try
             {
@@ -56,7 +53,7 @@ namespace AirlockFriends.Managers
             }
             catch (Exception ex)
             {
-                MelonLogger.Error("[AirlockFriends] Connection failed: " + ex.Message);
+                MelonLogger.Error($"[AirlockFriends] Connection failed: {ex.Message}");
             }
         }
 
@@ -71,11 +68,11 @@ namespace AirlockFriends.Managers
             };
 
             string json = System.Text.Json.JsonSerializer.Serialize(authPayload);
-            await SendRawAsync(json);
-            MelonLogger.Msg("[AirlockFriends] Sent authentication payload to server.");
+            await SendOperation(json);
+            MelonLogger.Msg("[AirlockFriends] Sent authentication request to server.");
         }
 
-        // USE THIS
+        // receive main loop
         private static async Task ReceiveLoop()
         {
             var buffer = new byte[8192];
@@ -92,38 +89,55 @@ namespace AirlockFriends.Managers
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
                         string msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        MelonLogger.Msg("[AirlockFriends] Server: " + msg);
+                        MelonLogger.Msg($"[AirlockFriends] Server: {msg}");
 
                         try
                         {
                             var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(msg);
 
+                            // Auth succeeded
                             if (data.TryGetProperty("authenticated", out var auth) && auth.GetBoolean())
                             {
                                 string publicFriendCode = data.GetProperty("friendCode").GetString();
                                 AssignFriendCode(publicFriendCode);
 
-                                string message = data.TryGetProperty("message", out var m)
-                                    ? m.GetString()
-                                    : "Authenticated successfully!";
+                                if (data.TryGetProperty("privateKey", out var PrivateToken))
+                                {
+                                    string newPrivateKey = PrivateToken.GetString();
 
-                                NotificationLib.QueueNotification(
-                                    $"[<color=magenta>AUTH</color>] {message} (FriendCode: <color=lime>{publicFriendCode}</color>)"
+                                    AirlockFriendsAuth.SaveNewPrivateKey(newPrivateKey);
+
+                                    MelonLogger.Msg($"[AirlockFriends] [DEBUG] Saved new privateKey from server: {newPrivateKey}");
+                                }
+                                else
+                                {
+                                    MelonLogger.Warning("[AirlockFriends] Server authenticated but did NOT send a privateKey?!");
+                                }
+
+                                string message = data.TryGetProperty("message", out var m) ? m.GetString() : "Authenticated successfully!";
+
+                                NotificationLib.QueueNotification($"[<color=magenta>AUTH</color>] {message} (FriendCode: <color=lime>{publicFriendCode}</color>)");
+                                continue;
+                            }
+
+
+                            // Authentication Failed
+                            if (data.TryGetProperty("authenticated", out var authFailed) && authFailed.ValueKind == System.Text.Json.JsonValueKind.False && data.TryGetProperty("action", out var actionProp) && actionProp.GetString() == "AuthViolation")
+                            {
+                                string message = data.TryGetProperty("error", out var error) ? error.GetString() : "AuthViolation";
+
+                                MelonLogger.Error($"[AirlockFriends] AUTH FAILED: {message}");
+
+                                NotificationLib.QueueNotification($"[<color=red>AUTH FAILED</color>] {message}"
                                 );
                                 continue;
                             }
 
-                            if (data.TryGetProperty("status", out var statusProp) &&
-                                statusProp.GetString() == "failed" &&
-                                data.TryGetProperty("reason", out var reasonProp) &&
-                                reasonProp.GetString() == "target offline")
+                            if (data.TryGetProperty("status", out var statusProp) && statusProp.GetString() == "failed" && data.TryGetProperty("reason", out var reasonProp) && reasonProp.GetString() == "target offline")
                             {
-                                string offlineFriend = data.TryGetProperty("toFriendCode", out var toCodeProp)
-                                    ? toCodeProp.GetString()
-                                    : "UNKNOWN";
+                                string offlineFriend = data.TryGetProperty("toFriendCode", out var toCodeProp) ? toCodeProp.GetString() : "";
 
-                                NotificationLib.QueueNotification($"[<color=red>OFFLINE</color>] <color=lime>{offlineFriend}</color> is currently offline!"
-                                );
+                                NotificationLib.QueueNotification($"[<color=red>OFFLINE</color>] <color=lime>{offlineFriend}</color> is currently offline!");
                                 continue;
                             }
 
@@ -161,8 +175,7 @@ namespace AirlockFriends.Managers
                                             string text = messageProp.GetString();
 
                                             MelonLogger.Msg($"[AirlockFriends] Message from {sender}: {text}");
-                                            NotificationLib.QueueNotification(
-                                                $"[<color=magenta>MESSAGE</color>] From: <color=lime>{sender}</color> {text}"
+                                            NotificationLib.QueueNotification($"[<color=magenta>MESSAGE</color>] From: <color=lime>{sender}</color> {text}"
                                             );
                                         }
                                         break;
@@ -196,16 +209,15 @@ namespace AirlockFriends.Managers
                 }
                 catch (Exception ex)
                 {
-                    MelonLogger.Error("[AirlockFriends] ReceiveLoop error: " + ex.Message);
+                    MelonLogger.Error($"[AirlockFriends] WSS Receive loop error: {ex.Message}");
                     break;
                 }
             }
-
             await Disconnect();
         }
 
 
-        public static async Task SendRawAsync(string text)
+        public static async Task SendOperation(string text)
         {
             if (!IsConnected) return;
 
@@ -213,19 +225,12 @@ namespace AirlockFriends.Managers
             await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, _cts.Token);
         }
 
-        public static void AssignFriendCode(string serverAssignedCode)
+        public static void AssignFriendCode(string ServerPublicKey)
         {
-            FriendCode = serverAssignedCode;
-
-            var lines = File.Exists(FilePath) ? File.ReadAllLines(FilePath) : new string[] { PrivateKey, FriendCode };
-            if (lines.Length >= 2)
-                lines[1] = FriendCode;
-            else
-                lines = new string[] { PrivateKey, FriendCode };
-
-            File.WriteAllLines(FilePath, lines);
+            FriendCode = ServerPublicKey;
             MelonLogger.Msg($"[AirlockFriends] Server assigned FriendCode: {FriendCode}");
         }
+
 
         public static async Task RPC_FriendshipRequest(string targetFriendCode)
         {
@@ -240,7 +245,7 @@ namespace AirlockFriends.Managers
             };
 
             string json = System.Text.Json.JsonSerializer.Serialize(request);
-            await SendRawAsync(json);
+            await SendOperation(json);
             MelonLogger.Msg($"[AirlockFriends] Sent friend request to {targetFriendCode}");
         }
 
@@ -252,7 +257,8 @@ namespace AirlockFriends.Managers
 
         public static async Task RPC_SendMessage(string targetFriendCode, string message)
         {
-            if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(FriendCode)) return;
+            if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(FriendCode))
+                return;
 
             var payload = new
             {
@@ -264,25 +270,27 @@ namespace AirlockFriends.Managers
             };
 
             string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            await SendRawAsync(json);
+            await SendOperation(json);
             MelonLogger.Msg($"[AirlockFriends] Sent message to {targetFriendCode}: {message}");
         }
 
         public static async Task Disconnect()
         {
-            if (!IsConnected) return;
-
-            try
+            if (!IsConnected)
             {
-                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnected", _cts.Token);
-                MelonLogger.Msg("[AirlockFriends] Disconnected from server.");
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error("[AirlockFriends] Disconnect failed: " + ex.Message);
+                try
+                {
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnected", _cts.Token);
+                    MelonLogger.Msg("[AirlockFriends] Disconnected from server.");
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error("[AirlockFriends] Disconnect failed: " + ex.Message);
+                }
             }
         }
 
+        // much easier to use => things lol
         public static string GetFriendCode() => FriendCode;
         public static string GetPrivateKey() => PrivateKey;
     }
