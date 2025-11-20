@@ -27,13 +27,14 @@ namespace AirlockFriends.Managers
 
         public static async void Initialize()
         {
-            PrivateKey = AirlockFriendsAuth.FriendshipAuthentication();
+            PrivateKey = AirlockFriendsAuth.AuthenticateOnce();
             MelonLogger.Msg($"[AirlockFriends] [DEBUG] Using PrivateKey: {PrivateKey}");
 
             await ConnectToServer();
-
             await AuthenticateWithServer();
         }
+
+
 
         private static async Task ConnectToServer()
         {
@@ -128,8 +129,21 @@ namespace AirlockFriends.Managers
 
                                 MelonLogger.Error($"[AirlockFriends] AUTH FAILED: {message}");
 
-                                NotificationLib.QueueNotification($"[<color=red>AUTH FAILED</color>] {message}"
+                                NotificationLib.QueueNotification($"[<color=red>Unauthorized</color>] {message}"
                                 );
+                                await Disconnect();
+                                continue;
+                            }
+
+                            if (data.TryGetProperty("EventIntercepted", out var interception))
+                            {
+                                string message = data.TryGetProperty("error", out var error) ? error.GetString() : "PostAuthKeyViolation";
+
+                                MelonLogger.Error($"[AirlockFriends] AUTH FAILED: {message}");
+
+                                NotificationLib.QueueNotification($"[<color=red>Unauthorized</color>] {message}"
+                                );
+                                await Disconnect();
                                 continue;
                             }
 
@@ -217,11 +231,11 @@ namespace AirlockFriends.Managers
         }
 
 
-        public static async Task SendOperation(string text)
+        public static async Task SendOperation(string OperationInfo)
         {
             if (!IsConnected) return;
 
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            byte[] bytes = Encoding.UTF8.GetBytes(OperationInfo);
             await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, _cts.Token);
         }
 
@@ -289,9 +303,5 @@ namespace AirlockFriends.Managers
                 }
             }
         }
-
-        // much easier to use => things lol
-        public static string GetFriendCode() => FriendCode;
-        public static string GetPrivateKey() => PrivateKey;
     }
 }

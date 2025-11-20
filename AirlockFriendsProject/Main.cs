@@ -24,18 +24,18 @@ namespace AirlockFriends
         public static bool PostVersion = false;
         private bool cached = false;
         public static CSteamID cachedId;
-        public static bool LockdownActive = false;
-        public static bool FullLockdownActive = false;
 
         public override void OnApplicationQuit()
         {
-            MelonLogger.Msg("Loading Airlock Friends");
+            MelonLogger.Msg("Thank you for using Airlock Friends!");
         }
 
         [System.Obsolete]
         public override void OnApplicationStart()
         {
+            MelonLogger.Msg("Loading Airlock Friends..");
             IsVR = UnityEngine.Application.productName.Contains("VR");
+            MenuPages.MenuPage1.AddFriends();
         }
 
 
@@ -89,7 +89,7 @@ namespace AirlockFriends
         public override void OnGUI()
         {
             GUI.color = Settings.GUIColor;
-            if (!GUIEnabled || !passed || FullLockdownActive)
+            if (!GUIEnabled || !passed)
                 return;
 
             try

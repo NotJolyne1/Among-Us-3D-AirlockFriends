@@ -9,7 +9,7 @@ namespace AirlockFriends.Managers
     {
         private static string FilePath = Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
 
-        public static string FriendshipAuthentication()
+        public static string AuthenticateOnce()
         {
             try
             {
