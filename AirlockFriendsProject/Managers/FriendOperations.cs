@@ -152,6 +152,7 @@ namespace AirlockFriends.Managers
                                 string offlineFriend = data.TryGetProperty("toFriendCode", out var toCodeProp) ? toCodeProp.GetString() : "";
 
                                 NotificationLib.QueueNotification($"[<color=red>OFFLINE</color>] <color=lime>{offlineFriend}</color> is currently offline!");
+                                MenuPages.MenuPage1.ReceiveChatMessage(offlineFriend, "Failed to send message. Ether the user is offline, invalid, or is not friends with the sender", true, false);
                                 continue;
                             }
 
@@ -183,14 +184,14 @@ namespace AirlockFriends.Managers
 
                                     case "messageReceived":
                                         if (data.TryGetProperty("fromFriendCode", out var senderCode) &&
-                                            data.TryGetProperty("message", out var messageProp))
+                                            data.TryGetProperty("message", out var MessageContent))
                                         {
                                             string sender = senderCode.GetString();
-                                            string text = messageProp.GetString();
+                                            string Message = MessageContent.GetString();
 
-                                            MelonLogger.Msg($"[AirlockFriends] Message from {sender}: {text}");
-                                            NotificationLib.QueueNotification($"[<color=magenta>MESSAGE</color>] From: <color=lime>{sender}</color> {text}"
-                                            );
+                                            MelonLogger.Msg($"[AirlockFriends] Message from {sender}: {Message}");
+                                            NotificationLib.QueueNotification($"[<color=magenta>MESSAGE</color>] From: <color=lime>{sender}</color> {MessageContent}");
+                                            MenuPages.MenuPage1.ReceiveChatMessage(sender, Message);
                                         }
                                         break;
 

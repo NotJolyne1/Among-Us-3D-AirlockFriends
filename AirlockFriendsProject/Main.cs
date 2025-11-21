@@ -94,28 +94,11 @@ namespace AirlockFriends
 
             try
             {
-                DrawMainMenu();
+                MenuPages.MenuPage1.Display();
             }
-
-
             catch (System.Exception e)
             {
                 MelonLogger.Warning($"[FAIL] Something went wrong! Failed at ModManager.Update(), error: {e}");
-            }
-        }
-
-
-        private void DrawMainMenu()
-        {
-            GUI.Box(new Rect(460f, 0f, 160f, 20f), "Airlock Friends");
-
-
-            if (CurrentPage < 1) CurrentPage = 1;
-            else if (CurrentPage >= 3) CurrentPage = 1;
-
-            switch (CurrentPage)
-            {
-                case 1: MenuPages.MenuPage1.Display(); break;
             }
         }
     }

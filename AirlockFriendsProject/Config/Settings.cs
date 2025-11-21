@@ -7,10 +7,10 @@ namespace AirlockFriends.Config
 {
     internal class Settings
     {
-        public const string Version = "1.2";
+        public const string Version = "1.4";
 
         public static bool GUIEnabled = true;
-        public static Color GUIColor = Color.green;
+        public static Color GUIColor = Color.blue;
         public static int GUIColorInt = 0;
         public static float RainbowColor = 0f;
 

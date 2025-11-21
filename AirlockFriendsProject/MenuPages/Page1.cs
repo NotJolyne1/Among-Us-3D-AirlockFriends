@@ -9,20 +9,15 @@ namespace AirlockFriends.MenuPages
 {
     public class MenuPage1
     {
-        private static Rect windowRect = new Rect(300, 100, 700, 500);
-
+        private static Rect WindowDesign = new Rect(300, 100, 700, 500);
         private static Vector2 scroll;
-        private static bool showMessagePopup;
-        private static FriendEntry currentMessageTarget;
-        private static string messageText = "";
-
         private static bool onRequestsPage = false;
-
         private static readonly List<FriendEntry> friends = new List<FriendEntry>();
         private static readonly List<string> friendRequests = new List<string>();
         private static readonly List<InviteData> ActiveInvites = new();
-        private static string Header => $"AIRLOCK FRIENDS: BETA {Settings.Version}";
         private static bool NewFriendRequest = false;
+
+
 
         private class InviteData
         {
@@ -45,6 +40,46 @@ namespace AirlockFriends.MenuPages
             }
         }
 
+        private class ChatMessage
+        {
+            public string Sender;
+            public string Text;
+            public Color TextColor;
+            public float TimeAdded;
+
+            public ChatMessage(string s, string t, Color color = default)
+            {
+                Sender = s;
+                Text = t;
+                TextColor = color == default ? Color.white : color;
+                TimeAdded = Time.time;
+            }
+        }
+
+        private static Dictionary<string, List<ChatMessage>> FriendConversations = new();
+        private static FriendEntry CurrentChatOpen = null;
+        private static Vector2 chatScroll;
+        private static string ChatInput = "";
+
+        private static void AddMessage(string friendCode, string sender, string message, Color color = default)
+        {
+            if (!FriendConversations.ContainsKey(friendCode))
+                FriendConversations[friendCode] = new List<ChatMessage>();
+
+            FriendConversations[friendCode].Add(new ChatMessage(sender, message, color));
+        }
+
+        public static void ReceiveChatMessage(string fromCode, string message, bool SendFailed = false, bool MyMessage = false)
+        {
+            if (SendFailed && MyMessage)
+                return;
+
+            Color color = SendFailed ? Color.red : Color.white;
+            AddMessage(fromCode, fromCode, message, color);
+        }
+
+
+
         public static void ReceiveInvite(string friendCode, string roomID)
         {
             ActiveInvites.Add(new InviteData
@@ -57,7 +92,7 @@ namespace AirlockFriends.MenuPages
 
         public static void Display()
         {
-            windowRect = GUI.Window(987654, windowRect, (GUI.WindowFunction)DrawWindow, "");
+            WindowDesign = GUI.Window(987654, WindowDesign, (GUI.WindowFunction)DrawWindow, "");
             DrawInvites();
         }
 
@@ -69,9 +104,10 @@ namespace AirlockFriends.MenuPages
         public static void AddFriends()
         {
             // debug
-            AddFriend("JolyneM", "Online", "AF-BCE72C");
-            AddFriend("JolyneA", "Offline", "AF-05295E");
-            AddFriend("JolyneT", "Offline", "AF-05195E");
+            AddFriend("Jolyne", "Online", "AF-BCE72C");
+            AddFriend("tnx", "Online", "AF-04C8CC");
+            AddFriend("Warp", "Online", "AF-568B46");
+            AddFriend("Someone", "Offline", "AF-05195E");
 
             friendRequests.Add("AF-9123AB");
             friendRequests.Add("AF-0019F3");
@@ -79,57 +115,59 @@ namespace AirlockFriends.MenuPages
             NewFriendRequest = true;
         }
 
+
         private static void DrawWindow(int id)
         {
-            GUI.Box(new Rect(0, 0, windowRect.width, windowRect.height), "");
+            GUI.Box(new Rect(0, 0, WindowDesign.width, WindowDesign.height), $"AIRLOCK FRIENDS: BETA {Settings.Version}");
 
-            GUI.Label(new Rect(0, 10, windowRect.width, 30), Header,
-                new GUIStyle(GUI.skin.label)
+            /*
+            GUI.Label(new Rect(0, 10, WindowDesign.width, 30), $"AIRLOCK FRIENDS: BETA {Settings.Version}", new GUIStyle(GUI.skin.label)
                 {
                     alignment = TextAnchor.MiddleCenter,
                     fontSize = 24,
                     fontStyle = FontStyle.Bold,
                     normal = { textColor = new Color(1f, 0.3f, 1f) }
                 });
+            */
 
-            if (!showMessagePopup)
+            if (CurrentChatOpen != null)
             {
-                Color prev = GUI.color;
-                if (NewFriendRequest) GUI.color = Color.red;
-                if (!onRequestsPage)
-                {
-                    if (GUI.Button(new Rect(10, 10, 150, 30), $"Friend Requests ({friendRequests.Count})"))
-                    {
-                        onRequestsPage = true;
-                        NewFriendRequest = false;
-                    }
-                }
-                GUI.color = prev;
+                DrawChatWindow(CurrentChatOpen);
+                GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
+                return;
             }
 
-            if (!showMessagePopup && !onRequestsPage)
+            Color SavedColor = GUI.color;
+            if (NewFriendRequest) GUI.color = Color.red;
+
+            if (!onRequestsPage)
             {
-                if (GUI.Button(new Rect(windowRect.width - 140, 10, 130, 30), "Authenticate"))
+                if (GUI.Button(new Rect(10, 10, 150, 30), $"Friend Requests ({friendRequests.Count})"))
+                {
+                    onRequestsPage = true;
+                    NewFriendRequest = false;
+                }
+            }
+
+            GUI.color = SavedColor;
+
+            if (!onRequestsPage)
+            {
+                if (GUI.Button(new Rect(WindowDesign.width - 140, 10, 130, 30), "Authenticate"))
                     AirlockFriendsOperations.Initialize();
             }
 
-            if (!showMessagePopup)
-            {
-                if (onRequestsPage)
-                    DrawRequestsPage();
-                else
-                    DrawFriendsList();
-            }
+            if (onRequestsPage)
+                DrawRequestsPage();
+            else
+                DrawFriendsList();
 
-            if (showMessagePopup)
-                DrawMessagePopup();
-
-            GUI.DragWindow(new Rect(0, 0, windowRect.width, 30));
+            GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
         }
 
         private static void DrawFriendsList()
         {
-            var listRect = new Rect(10, 50f, windowRect.width - 20, windowRect.height - 60);
+            var listRect = new Rect(10, 50f, WindowDesign.width - 20, WindowDesign.height - 60);
             var viewRect = new Rect(0, 0, listRect.width - 20, friends.Count * 60f);
 
             GUI.BeginGroup(listRect);
@@ -139,56 +177,55 @@ namespace AirlockFriends.MenuPages
 
             for (int i = 0; i < friends.Count; i++)
             {
-                var f = friends[i];
+                var FriendData = friends[i];
 
                 GUI.Box(new Rect(0, y, viewRect.width, 55), "");
 
                 GUI.Label(new Rect(10, y + 15, 150, 25),
-                    f.Name,
+                    FriendData.Name,
                     new GUIStyle(GUI.skin.label) { fontSize = 16, fontStyle = FontStyle.Bold });
 
                 Color statusColor =
-                    f.Status == "Online" ? Color.green :
-                    f.Status == "Offline" ? Color.red :
+                    FriendData.Status == "Online" ? Color.green :
+                    FriendData.Status == "Offline" ? Color.red :
                     Color.yellow;
 
                 GUI.Label(new Rect(170, y + 17, 100, 25),
-                    f.Status,
+                    FriendData.Status,
                     new GUIStyle(GUI.skin.label) { normal = { textColor = statusColor } });
 
-                float x = 280;
                 float w = 70;
-                var SavedColor = GUI.color;
+                Color saved = GUI.color;
 
                 GUI.color = Color.cyan;
-                if (GUI.Button(new Rect(x, y + 12, w, 30), "Message"))
+                if (GUI.Button(new Rect(280, y + 12, w, 30), "Message"))
                 {
-                    showMessagePopup = true;
-                    currentMessageTarget = f;
-                    messageText = "";
+                    CurrentChatOpen = FriendData;
+                    ChatInput = "";
+
+                    if (!FriendConversations.ContainsKey(FriendData.FriendCode))
+                        FriendConversations[FriendData.FriendCode] = new List<ChatMessage>();
                 }
 
                 GUI.color = Color.red;
-                if (GUI.Button(new Rect(x + w + 10, y + 12, w, 30), "Unfriend"))
+                if (GUI.Button(new Rect(280 + w + 10, y + 12, w, 30), "Unfriend"))
                 {
                     friends.RemoveAt(i);
                     i--;
+                    GUI.color = saved;
                     continue;
                 }
 
                 GUI.color = Color.cyan;
-                if (GUI.Button(new Rect(x + 2 * (w + 10), y + 12, w, 30), "Invite"))
+                if (GUI.Button(new Rect(280 + 2 * (w + 10), y + 12, w, 30), "Invite"))
                 {
-                    ReceiveInvite("Elon Musk", "FIEUCD");
-                    ReceiveInvite("Mr.Beast", "FIP3UC");
-                    ReceiveInvite("SomeMexicanGuy", "F2P6PO");
-
+                    ReceiveInvite(FriendData.FriendCode, "ROOM123");
                 }
 
-                if (GUI.Button(new Rect(x + 3 * (w + 10), y + 12, w, 30), "Join"))
-                    MelonLogger.Msg($"Join {f.Name}");
+                if (GUI.Button(new Rect(280 + 3 * (w + 10), y + 12, w, 30), "Join"))
+                    MelonLogger.Msg($"Join {FriendData.Name}");
 
-                GUI.color = SavedColor;
+                GUI.color = saved;
                 y += 60;
             }
 
@@ -196,12 +233,13 @@ namespace AirlockFriends.MenuPages
             GUI.EndGroup();
         }
 
+
         private static void DrawRequestsPage()
         {
             if (GUI.Button(new Rect(10, 50, 80, 30), "Back"))
                 onRequestsPage = false;
 
-            GUI.Label(new Rect(0, 50, windowRect.width, 30),
+            GUI.Label(new Rect(0, 50, WindowDesign.width, 30),
                 "Friend Requests",
                 new GUIStyle(GUI.skin.label)
                 {
@@ -214,78 +252,110 @@ namespace AirlockFriends.MenuPages
             for (int i = 0; i < friendRequests.Count; i++)
             {
                 string req = friendRequests[i];
-                GUI.Box(new Rect(10, y, windowRect.width - 20, 60), "");
+                GUI.Box(new Rect(10, y, WindowDesign.width - 20, 60), "");
 
                 GUI.Label(new Rect(20, y + 17, 300, 25), $"Request: {req}",
                     new GUIStyle(GUI.skin.label) { fontSize = 16 });
 
-                var SavedColor = GUI.color;
+                Color saved = GUI.color;
+
                 GUI.color = Color.green;
-                if (GUI.Button(new Rect(windowRect.width - 220, y + 15, 90, 30), "Accept"))
+                if (GUI.Button(new Rect(WindowDesign.width - 220, y + 15, 90, 30), "Accept"))
                 {
-                    MelonLogger.Msg($"Accepted {req}");
                     friendRequests.RemoveAt(i);
                     i--;
+                    GUI.color = saved;
                     continue;
                 }
 
                 GUI.color = Color.red;
-                if (GUI.Button(new Rect(windowRect.width - 120, y + 15, 90, 30), "Reject"))
+                if (GUI.Button(new Rect(WindowDesign.width - 120, y + 15, 90, 30), "Reject"))
                 {
-                    MelonLogger.Msg($"Rejected {req}");
                     friendRequests.RemoveAt(i);
                     i--;
+                    GUI.color = saved;
                     continue;
                 }
-                GUI.color = SavedColor;
 
+                GUI.color = saved;
                 y += 70;
             }
         }
 
-        private static void DrawMessagePopup()
+        private static void DrawChatWindow(FriendEntry FriendInfo)
         {
-            GUI.enabled = false;
-            GUI.Box(new Rect(0, 0, windowRect.width, windowRect.height), "");
-            GUI.enabled = true;
-
-            Rect rect = new Rect(
-                windowRect.width / 2 - 150,
-                windowRect.height / 2 - 60,
-                300,
-                120);
-
-            GUI.Box(rect, "");
-
-            GUI.Label(new Rect(rect.x, rect.y + 5, rect.width, 25),
-                "Message " + currentMessageTarget.Name,
+            GUI.Label(new Rect(0, 25, WindowDesign.width, 30),
+                $"Direct Message With {FriendInfo.Name}",
                 new GUIStyle(GUI.skin.label)
                 {
                     alignment = TextAnchor.MiddleCenter,
-                    fontSize = 18,
+                    fontSize = 17,
                     fontStyle = FontStyle.Bold
                 });
 
-            messageText = GUI.TextField(new Rect(rect.x + 10, rect.y + 40, 280, 30), messageText);
-
-            var SavedColor = GUI.color;
-            GUI.color = Color.green;
-            if (GUI.Button(new Rect(rect.x + 10, rect.y + 80, 130, 30), "Send"))
+            if (GUI.Button(new Rect(10, 10, 80, 30), "Back"))
             {
-                _ = AirlockFriendsOperations.RPC_SendMessage(currentMessageTarget.FriendCode, messageText);
-                showMessagePopup = false;
+                CurrentChatOpen = null;
+                return;
             }
 
-            GUI.color = Color.red;
-            if (GUI.Button(new Rect(rect.x + 160, rect.y + 80, 130, 30), "Cancel"))
-                showMessagePopup = false;
+            var messages = FriendConversations.ContainsKey(FriendInfo.FriendCode) ? FriendConversations[FriendInfo.FriendCode] : new List<ChatMessage>();
 
-            GUI.color = SavedColor;
+            Rect ChatDesign = new Rect(10, 50, WindowDesign.width - 20, WindowDesign.height - 120);
+
+            float totalHeight = 0f;
+            GUIStyle HeightFix = new GUIStyle(GUI.skin.label) { richText = true };
+            foreach (var msg in messages)
+            {
+                HeightFix.normal.textColor = msg.TextColor;
+                float height = HeightFix.CalcHeight(new GUIContent(msg.Text), ChatDesign.width - 20);
+                totalHeight += height + 30;
+            }
+
+            Rect ViewingDesign = new Rect(0, 0, ChatDesign.width - 20, totalHeight);
+
+            GUI.BeginGroup(ChatDesign);
+            chatScroll = GUI.BeginScrollView(new Rect(0, 0, ChatDesign.width, ChatDesign.height), chatScroll, ViewingDesign);
+
+            float y = 0f;
+            foreach (var msg in messages)
+            {
+                HeightFix.normal.textColor = msg.TextColor;
+                float height = HeightFix.CalcHeight(new GUIContent(msg.Text), ChatDesign.width - 20);
+
+                GUI.Box(new Rect(0, y, ViewingDesign.width, height + 25), "");
+
+                GUI.Label(new Rect(10, y + 5, ViewingDesign.width - 20, 20),
+                    msg.Sender,
+                    new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold });
+
+                GUI.Label(new Rect(10, y + 25, ViewingDesign.width - 20, height), msg.Text, HeightFix);
+
+                y += height + 30;
+            }
+
+            GUI.EndScrollView();
+            GUI.EndGroup();
+
+            ChatInput = GUI.TextField(new Rect(10, WindowDesign.height - 60, WindowDesign.width - 140, 40), ChatInput);
+
+            if (GUI.Button(new Rect(WindowDesign.width - 120, WindowDesign.height - 60, 110, 40), "Send"))
+            {
+                if (!string.IsNullOrWhiteSpace(ChatInput))
+                {
+                    _ = AirlockFriendsOperations.RPC_SendMessage(FriendInfo.FriendCode, ChatInput);
+
+                    AddMessage(FriendInfo.FriendCode, "You", ChatInput);
+                    ChatInput = "";
+                }
+            }
         }
+
+
+
 
         private static void DrawInvites()
         {
-
             for (int i = ActiveInvites.Count - 1; i >= 0; i--)
             {
                 if (Time.time - ActiveInvites[i].TimeCreated > 30f)
@@ -295,7 +365,7 @@ namespace AirlockFriends.MenuPages
             for (int i = 0; i < ActiveInvites.Count; i++)
             {
                 var inv = ActiveInvites[i];
-                Rect r = new Rect(windowRect.x + 10, windowRect.yMax + 10 + (i * (70 + 5)), 300, 70);
+                Rect r = new Rect(WindowDesign.x + 10, WindowDesign.yMax + 10 + (i * 75), 300, 70);
 
                 GUI.color = new Color(0, 0, 0, 0.65f);
                 GUI.Box(r, "");
@@ -309,7 +379,6 @@ namespace AirlockFriends.MenuPages
                 GUI.backgroundColor = Color.green;
                 if (GUILayout.Button("Accept"))
                 {
-                    MelonLogger.Msg($"Accepted invite from {inv.FriendCode} for room {inv.RoomID}");
                     ActiveInvites.Remove(inv);
                     break;
                 }
@@ -317,7 +386,6 @@ namespace AirlockFriends.MenuPages
                 GUI.backgroundColor = Color.red;
                 if (GUILayout.Button("Ignore"))
                 {
-                    MelonLogger.Msg($"Ignored invite from {inv.FriendCode}");
                     ActiveInvites.Remove(inv);
                     break;
                 }
