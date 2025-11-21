@@ -16,7 +16,6 @@ namespace AirlockFriends.Managers
                 if (File.Exists(FilePath))
                 {
                     string key = File.ReadAllText(FilePath);
-
                     key = key.Replace("\n", "").Replace("\r", "").Trim();
 
                     if (!string.IsNullOrEmpty(key))
@@ -25,13 +24,11 @@ namespace AirlockFriends.Managers
                         return key;
                     }
 
-                    MelonLogger.Warning("[AirlockFriends] PrivateKey file empty. Sending empty key to server.");
                     return "";
                 }
                 else
                 {
                     File.WriteAllText(FilePath, "");
-                    MelonLogger.Warning("[AirlockFriends] No key file. Created empty key file. Sending empty key to server.");
                     return "";
                 }
             }
@@ -47,7 +44,7 @@ namespace AirlockFriends.Managers
             try
             {
                 File.WriteAllText(FilePath, privateKey);
-                MelonLogger.Msg($"[AirlockFriends] [dEBUG] Saved new PrivateKey: {privateKey}");
+                MelonLogger.Msg($"[AirlockFriends] [DEBUG] Saved new PrivateKey: {privateKey}");
             }
             catch (Exception ex)
             {
