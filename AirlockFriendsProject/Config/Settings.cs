@@ -7,7 +7,7 @@ namespace AirlockFriends.Config
 {
     internal class Settings
     {
-        public const string Version = "1.4";
+        public const string Version = "1.5";
 
         public static bool GUIEnabled = true;
         public static Color GUIColor = Color.blue;
@@ -18,7 +18,6 @@ namespace AirlockFriends.Config
         public static bool InGame = false;
         public static bool GameRefsFound = false;
 
-        public static int CurrentPage = 0;
         public static string messageFriend = "";
         public static string friendCodeTyped = "";
         public static string messageContent = "";
@@ -27,9 +26,7 @@ namespace AirlockFriends.Config
 		public static bool CodeRecievced = false;
         public static string CurrentRoom = "Not in a room";
 
-        // Notifications
         public static float NotiDuration = 4f;
         public static bool ShowNotifications = true;
-
     }
 }

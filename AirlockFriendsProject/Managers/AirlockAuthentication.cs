@@ -8,8 +8,8 @@ namespace AirlockFriends.Managers
     public static class AirlockFriendsAuth
     {
         private static string FilePath = Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
-
-        public static string AuthenticateOnce()
+        public static ConnectionStatus connectionStatus;
+        public static string PrepareAuthenticationKey()
         {
             try
             {
@@ -20,7 +20,7 @@ namespace AirlockFriends.Managers
 
                     if (!string.IsNullOrEmpty(key))
                     {
-                        MelonLogger.Msg($"[AirlockFriends] Loaded PrivateKey: {key}");
+                        MelonLogger.Msg($"[AirlockFriends] [DEBUG] Loaded PrivateKey: {key}");
                         return key;
                     }
 
@@ -39,7 +39,7 @@ namespace AirlockFriends.Managers
             }
         }
 
-        public static void SaveNewPrivateKey(string privateKey)
+        public static void SavePrivateKey(string privateKey)
         {
             try
             {
@@ -51,5 +51,20 @@ namespace AirlockFriends.Managers
                 MelonLogger.Error("[AirlockFriends] [DEBUG] Failed to save PrivateKey: " + ex);
             }
         }
+
+        public enum ConnectionStatus
+        {
+            Established,
+            Disconnected,
+            Rejected,
+            Authenticating,
+            Connecting,
+            ForciblyClosed,
+            Failed
+        }
+
+
+
+
     }
 }

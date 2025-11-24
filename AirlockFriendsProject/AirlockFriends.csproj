@@ -25,9 +25,6 @@
     <Reference Include="Il2Cppmscorlib">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
     </Reference>
-    <Reference Include="Il2CppPhotonRealtime">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\MelonLoader\Il2CppAssemblies\Il2CppPhotonRealtime.dll</HintPath>
-    </Reference>
     <Reference Include="Il2CppPhotonVoice">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\MelonLoader\Il2CppAssemblies\Il2CppPhotonVoice.dll</HintPath>
     </Reference>
@@ -89,6 +86,7 @@
 
   <ItemGroup>
     <Folder Include="AirlockFriendsManagers\" />
+    <Folder Include="Patches\" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

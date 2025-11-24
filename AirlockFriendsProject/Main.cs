@@ -1,11 +1,12 @@
-﻿using Il2CppSteamworks;
-using MelonLoader;
-using AirlockFriends.Config;
+﻿using AirlockFriends.Config;
 using AirlockFriends.Managers;
+using Il2CppSteamworks;
+using MelonLoader;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using static AirlockFriends.Config.Settings;
+using UnityEngine.PlayerLoop;
 using static AirlockFriends.Config.GameReferences;
+using static AirlockFriends.Config.Settings;
 
 [assembly: MelonInfo(typeof(AirlockFriends.Main), "AirlockFriends", Settings.Version, "Shadoww.py", "githublink")]
 [assembly: MelonGame("Schell Games", "Among Us 3D")]
@@ -35,7 +36,6 @@ namespace AirlockFriends
         {
             MelonLogger.Msg("Loading Airlock Friends..");
             IsVR = UnityEngine.Application.productName.Contains("VR");
-            MenuPages.MenuPage1.AddFriends();
         }
 
 
@@ -80,7 +80,9 @@ namespace AirlockFriends
             }
 
             if (InGame && !GameRefsFound)
+            {
                 refreshGameRefs();
+            }
         }
 
 
@@ -94,7 +96,7 @@ namespace AirlockFriends
 
             try
             {
-                MenuPages.MenuPage1.Display();
+                UI.FriendGUI.Update();
             }
             catch (System.Exception e)
             {
