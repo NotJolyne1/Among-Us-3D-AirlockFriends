@@ -528,6 +528,13 @@
                 var req = JoinRequests[i];
                 Rect r = new Rect(WindowDesign.x + 10, WindowDesign.yMax + 10 + (i * 75), 300, 70);
 
+                if (!Settings.InGame)
+                {
+                    _ = AirlockFriendsOperations.RPC_RespondToJoin(req.FriendCode, false, false);
+                    JoinRequests.Remove(req);
+                    break;
+                }
+
                 GUI.color = new Color(0, 0, 0, 0.65f);
                 GUI.Box(r, "");
                 GUI.color = Color.white;

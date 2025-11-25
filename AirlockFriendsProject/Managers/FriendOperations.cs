@@ -320,17 +320,18 @@ namespace AirlockFriends.Managers
 
 
 
-                                    case "joinRequest":
-                                        if (data.TryGetProperty("fromFriendCode", out var fromFriendProp))
+                                    case "joinRequestReceived":
+                                        if (data.TryGetProperty("fromFriendCode", out var fromFriendReceived))
                                         {
-                                            string senderFriendCode = fromFriendProp.GetString();
-                                            MelonLogger.Msg($"[AirlockFriends] Join request received from {senderFriendCode}");
+                                            string senderFriendCode = fromFriendReceived.GetString();
+                                            MelonLogger.Msg($"[AirlockFriends] Join request (received) from {senderFriendCode}");
                                             NotificationLib.QueueNotification($"[<color=magenta>JOIN REQUEST</color>] <color=lime>{senderFriendCode}</color> wants to join!");
 
-                                            // Call the existing function on your side
+                                            // Call your existing handler
                                             ReceiveJoinRequest(senderFriendCode);
                                         }
                                         break;
+
 
                                     case "joinRequestResponse":
                                         if (data.TryGetProperty("targetFriendCode", out var targetProp) &&
@@ -339,6 +340,7 @@ namespace AirlockFriends.Managers
                                             string friendCode = targetProp.GetString();
                                             bool accepted = acceptedProp.GetBoolean();
                                             string roomCode = data.TryGetProperty("roomID", out var roomProp) ? roomProp.GetString() : "";
+                                            bool inGame = data.TryGetProperty("inGame", out var inGameProp) && inGameProp.GetBoolean();
 
                                             if (accepted)
                                             {
@@ -347,11 +349,21 @@ namespace AirlockFriends.Managers
                                             }
                                             else
                                             {
-                                                MelonLogger.Msg($"[AirlockFriends] {friendCode} rejected your join request.");
-                                                NotificationLib.QueueNotification($"[<color=red>JOIN REJECTED</color>] <color=lime>{friendCode}</color> did not accept your join request.");
+                                                if (!inGame)
+                                                {
+                                                    MelonLogger.Msg($"[AirlockFriends] {friendCode} is not in a game.");
+                                                    NotificationLib.QueueNotification($"[<color=red>JOIN FAILED</color>] <color=lime>{friendCode}</color> is not in a game.");
+                                                }
+                                                else
+                                                {
+                                                    // Standard rejection
+                                                    MelonLogger.Msg($"[AirlockFriends] {friendCode} rejected your join request.");
+                                                    NotificationLib.QueueNotification($"[<color=red>JOIN REJECTED</color>] <color=lime>{friendCode}</color> did not accept your join request.");
+                                                }
                                             }
                                         }
                                         break;
+
 
 
 
@@ -615,24 +627,40 @@ namespace AirlockFriends.Managers
             MelonLogger.Msg($"[AirlockFriends] Sent join request to {targetFriendCode}");
         }
 
-        public static async Task RPC_RespondToJoin(string senderFriendCode, bool accepted)
+        public static async Task RPC_RespondToJoin(string senderFriendCode, bool accepted, bool InGame = true)
         {
-            string roomCode = accepted ? UnityEngine.Object.FindObjectOfType<AirlockNetworkRunner>().SessionInfo.Name : "NoRoom";
+            string roomCode = "";
+
+            if (accepted)
+            {
+                var runner = UnityEngine.Object.FindObjectOfType<AirlockNetworkRunner>();
+                if (runner != null)
+                {
+                    roomCode = runner.SessionInfo.Name;
+                }
+            }
 
             var payload = new
+                {
+                    type = "joinRequestResponse",
+                    fromPrivateKey = PrivateKey,
+                    targetFriendCode = senderFriendCode,
+                    accepted = accepted,
+                    roomID = roomCode,
+                    inGame = InGame
+                };
+
+            var options = new System.Text.Json.JsonSerializerOptions
             {
-                type = "joinRequestResponse",
-                fromPrivateKey = PrivateKey,
-                targetFriendCode = senderFriendCode,
-                accepted = accepted,
-                roomID = roomCode
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            string json = System.Text.Json.JsonSerializer.Serialize(payload, options);
             await RaiseEvent(json);
 
             MelonLogger.Msg($"[AirlockFriends] Responded to join request from {senderFriendCode}: {(accepted ? $"accepted (room {roomCode})" : "rejected")}");
         }
+
 
 
 
