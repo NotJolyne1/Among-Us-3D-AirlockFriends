@@ -1,4 +1,5 @@
-﻿using AirlockFriends.Config;
+﻿using System;
+using AirlockFriends.Config;
 using AirlockFriends.Managers;
 using Il2CppSteamworks;
 using MelonLoader;
@@ -42,6 +43,15 @@ namespace AirlockFriends
         public override void OnSceneWasInitialized(int buildIndex, string sceneName)
         {
             InGame = sceneName != "Boot" && sceneName != "Title";
+            try
+            {
+                AirlockFriendsOperations.PrepareAuthentication();
+                _ = AirlockFriendsOperations.RPC_GetFriends();
+            }
+            catch (Exception ex) 
+            {
+                MelonLogger.Error($"Failed to get friends: {ex}");
+            }
         }
 
 

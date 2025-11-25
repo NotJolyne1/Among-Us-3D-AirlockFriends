@@ -57,12 +57,11 @@
                 Privacy = "FriendsOnly";
             }
 
-            public void Update(string name, string status, string room, string privacy)
+            public void Update(string name, string status, string room)
             {
                 Name = name;
                 Status = status;
                 RoomCode = room;
-                Privacy = privacy;
             }
         }
 
@@ -123,7 +122,7 @@
 
 
 
-        public static void UpdateFriend(string name, string status, string friendCode, string roomID, string privacy)
+        public static void UpdateFriend(string name, string online, string friendCode, string roomID)
         {
             if (name.Length > 16)
                 name = name.Substring(0, 16);
@@ -139,7 +138,7 @@
                 friends.Add(friend);
             }
 
-            friend.Update(name, status, roomID, privacy);
+            friend.Update(name, online, roomID);
         }
 
 
@@ -178,7 +177,7 @@
             if (!onRequestsPage)
             {
                 if (GUI.Button(new Rect(WindowDesign.width - 140, 10, 130, 30), "Authenticate"))
-                    AirlockFriendsOperations.Initialize();
+                    AirlockFriendsOperations.PrepareAuthentication();
             }
 
             if (onRequestsPage)
@@ -307,33 +306,8 @@
 
 
                 if (GUI.Button(new Rect(280 + 3 * (w + 10), y + 12, w, 30), "Update"))
-                {
-                    string testCode = "AF-39005A";
-                    var friend = GetFriend(testCode);
+                    _ = AirlockFriendsOperations.RPC_GetFriends();
 
-                    if (friend != null)
-                    {
-                        string[] testNames = { "Jevil", "Shadow", "Carsten", "tnx", "Youtubey", "Jolyne" };
-                        string[] testStatuses = { "Online", "Offline"};
-                        string[] testRooms = { "FQ1A2B", "FOE03N", "FP2URV", "FOEP7C" };
-                        string[] testPrivacy = { "Joinable", "Private" };
-
-                        string newName = testNames[UnityEngine.Random.Range(0, testNames.Length)];
-                        string newStatus = testStatuses[UnityEngine.Random.Range(0, testStatuses.Length)];
-                        string newRoom = testRooms[UnityEngine.Random.Range(0, testRooms.Length)];
-                        string newPrivacy = testPrivacy[UnityEngine.Random.Range(0, testPrivacy.Length)];
-
-                        MelonLogger.Msg($"[DEBUG UPDATE] BEFORE: {friend.Name}, {friend.Status}, {friend.RoomCode}, {friend.Privacy}");
-
-                        friend.Update(newName, newStatus, newRoom, newPrivacy);
-
-                        MelonLogger.Msg($"[DEBUG UPDATE] AFTER: {friend.Name}, {friend.Status}, {friend.RoomCode}, {friend.Privacy}");
-                    }
-                    else
-                    {
-                        MelonLogger.Warning("[DEBUG UPDATE] Friend not found.");
-                    }
-                }
 
                 GUI.color = saved;
                 y += 60;

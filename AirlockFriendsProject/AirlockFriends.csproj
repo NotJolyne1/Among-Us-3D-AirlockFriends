@@ -86,7 +86,6 @@
 
   <ItemGroup>
     <Folder Include="AirlockFriendsManagers\" />
-    <Folder Include="Patches\" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

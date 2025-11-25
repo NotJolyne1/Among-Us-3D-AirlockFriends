@@ -2,6 +2,7 @@
 using System.IO;
 using UnityEngine;
 using MelonLoader;
+using System.Collections;
 
 namespace AirlockFriends.Managers
 {
@@ -64,7 +65,25 @@ namespace AirlockFriends.Managers
         }
 
 
+        public static IEnumerator AttemptReconnection(bool NotCrash = false)
+        {
+            int connectionAttempts = 0;
+            if (!NotCrash)
+            {
+                MelonLogger.Warning("[AirlockFriends] Connection to the server was lost! Attempting to reconnect...");
+                MelonLogger.Warning("[AirlockFriends] This can be due to a server restart, maintenance, or the server being updated.");
+                MelonLogger.Warning("[AirlockFriends] No action is needed on your part, just allow the server to restart which will be quick if this was planned.");
+            }
 
+            while (!AirlockFriendsOperations.IsConnected)
+            {
+                yield return new WaitForSeconds(1f);
+                AirlockFriendsOperations.PrepareAuthentication();
+                connectionAttempts++;
+                yield return new WaitForSeconds(2f);
+            }
+            MelonLogger.Msg("[AirlockFriends] Successfully reconnected!");
+        }
 
     }
 }
