@@ -17,6 +17,7 @@
             private static readonly List<FriendInfo> friends = new List<FriendInfo>();
             public static readonly List<string> friendRequests = new List<string>();
             private static readonly List<InviteData> ActiveInvites = new();
+            private static readonly List<JoinRequestData> JoinRequests = new();
             public static bool NewFriendRequest = false;
             private static bool onSettingsPage = false;
             private static int JoinIndex = 0;
@@ -33,6 +34,12 @@
         {
             public string FriendCode;
             public string RoomID;
+            public float TimeCreated;
+        }
+
+        private class JoinRequestData
+        {
+            public string FriendCode;
             public float TimeCreated;
         }
 
@@ -114,10 +121,20 @@
             });
         }
 
+        public static void ReceiveJoinRequest(string friendCode)
+        {
+            JoinRequests.Add(new JoinRequestData
+            {
+                FriendCode = friendCode,
+                TimeCreated = Time.time
+            });
+        }
+
         public static void Update()
         {
             WindowDesign = GUI.Window(987654, WindowDesign, (GUI.WindowFunction)DrawWindow, "");
             DrawInvites();
+            DrawJoinRequests();
         }
 
 
@@ -176,8 +193,10 @@
 
             if (!onRequestsPage)
             {
-                if (GUI.Button(new Rect(WindowDesign.width - 140, 10, 130, 30), "Authenticate"))
-                    AirlockFriendsOperations.PrepareAuthentication();
+                GUI.color = Color.cyan;
+                if (GUI.Button(new Rect(WindowDesign.width - 140, 10, 130, 30), "Settings"))
+                    onSettingsPage = true;
+                GUI.color = SavedColor;
             }
 
             if (onRequestsPage)
@@ -185,13 +204,7 @@
             else
                 DrawFriendsList();
 
-            if (!onRequestsPage && CurrentChatOpen == null)
-            {
-                if (GUI.Button(new Rect(10, WindowDesign.height - 40, 150, 30), "Settings"))
-                {
-                    onSettingsPage = true;
-                }
-            }
+
 
             GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
         }
@@ -300,8 +313,8 @@
                 }
 
                 GUI.color = Color.cyan;
-                if (GUI.Button(new Rect(280 + 2 * (w + 10), y + 12, w, 30), "Invite"))
-                    _ = AirlockFriendsOperations.RPC_RequestInviteInfo(FriendData.FriendCode);
+                if (GUI.Button(new Rect(280 + 2 * (w + 10), y + 12, w, 30), "Request Join"))
+                    _ = AirlockFriendsOperations.RPC_RequestJoin(FriendData.FriendCode);
 
 
 
@@ -500,10 +513,50 @@
                 GUI.backgroundColor = Color.white;
                 GUILayout.EndArea();
             }
-
         }
 
+        private static void DrawJoinRequests()
+        {
+            for (int i = JoinRequests.Count - 1; i >= 0; i--)
+            {
+                if (Time.time - JoinRequests[i].TimeCreated > 30f)
+                    JoinRequests.RemoveAt(i);
+            }
 
+            for (int i = 0; i < JoinRequests.Count; i++)
+            {
+                var req = JoinRequests[i];
+                Rect r = new Rect(WindowDesign.x + 10, WindowDesign.yMax + 10 + (i * 75), 300, 70);
+
+                GUI.color = new Color(0, 0, 0, 0.65f);
+                GUI.Box(r, "");
+                GUI.color = Color.white;
+
+                GUILayout.BeginArea(r);
+                GUILayout.Label($"{req.FriendCode} wants to join you!");
+
+                GUILayout.BeginHorizontal();
+                GUI.backgroundColor = Color.green;
+                if (GUILayout.Button("Accept"))
+                {
+                    _ = AirlockFriendsOperations.RPC_RespondToJoin(req.FriendCode, true);
+                    JoinRequests.Remove(req);
+                    break;
+                }
+
+                GUI.backgroundColor = Color.red;
+                if (GUILayout.Button("Ignore"))
+                {
+                    _ = AirlockFriendsOperations.RPC_RespondToJoin(req.FriendCode, false);
+                    JoinRequests.Remove(req);
+                    break;
+                }
+                GUILayout.EndHorizontal();
+
+                GUI.backgroundColor = Color.white;
+                GUILayout.EndArea();
+            }
+        }
 
         private static void DrawSettingsPage()
         {
