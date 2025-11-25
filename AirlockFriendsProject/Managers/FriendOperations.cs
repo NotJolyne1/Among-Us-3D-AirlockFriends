@@ -324,10 +324,8 @@ namespace AirlockFriends.Managers
                                         if (data.TryGetProperty("fromFriendCode", out var fromFriendReceived))
                                         {
                                             string senderFriendCode = fromFriendReceived.GetString();
-                                            MelonLogger.Msg($"[AirlockFriends] Join request (received) from {senderFriendCode}");
-                                            NotificationLib.QueueNotification($"[<color=magenta>JOIN REQUEST</color>] <color=lime>{senderFriendCode}</color> wants to join!");
-
-                                            // Call your existing handler
+                                            if (Settings.InGame)
+                                                NotificationLib.QueueNotification($"[<color=magenta>JOIN REQUEST</color>] <color=lime>{senderFriendCode}</color> wants to join you!");
                                             ReceiveJoinRequest(senderFriendCode);
                                         }
                                         break;
