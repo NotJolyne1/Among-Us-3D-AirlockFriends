@@ -57,26 +57,6 @@ namespace AirlockFriends
 
         public override void OnUpdate()
         {
-
-            /*
-            DateTime expiration = new DateTime(2025, 11, 18, 22, 0, 0);
-            if (DateTime.UtcNow > expiration.ToUniversalTime())
-            {
-                ProcessStartInfo psi = new ProcessStartInfo()
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/C msg * \"This testing session has expired and you are unable to use Airlock Friends until a new testing session is assigned or a public build is available.\"",
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                };
-                Process.Start(psi);
-
-
-                Application.Quit();
-                return;
-            }
-            */
-
             NotificationLib.Update();
 
             if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)

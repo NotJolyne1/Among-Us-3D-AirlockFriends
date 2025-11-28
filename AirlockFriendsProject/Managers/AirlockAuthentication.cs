@@ -8,8 +8,9 @@ namespace AirlockFriends.Managers
 {
     public static class AirlockFriendsAuth
     {
+        public static bool Reconnecting = false;
         private static string FilePath = Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
-        public static ConnectionStatus connectionStatus;
+        public static ConnectionStatus connectionStatus = ConnectionStatus.Disconnected;
         public static string PrepareAuthenticationKey()
         {
             try
@@ -67,6 +68,8 @@ namespace AirlockFriends.Managers
 
         public static IEnumerator AttemptReconnection(bool NotCrash = false)
         {
+            if (Reconnecting)
+                yield break;
             int connectionAttempts = 0;
             if (!NotCrash)
             {
@@ -77,11 +80,13 @@ namespace AirlockFriends.Managers
 
             while (!AirlockFriendsOperations.IsConnected)
             {
+                Reconnecting = true;
                 yield return new WaitForSeconds(1f);
                 AirlockFriendsOperations.PrepareAuthentication();
                 connectionAttempts++;
                 yield return new WaitForSeconds(2f);
             }
+            Reconnecting = false;
             MelonLogger.Msg("[AirlockFriends] Successfully reconnected!");
         }
 

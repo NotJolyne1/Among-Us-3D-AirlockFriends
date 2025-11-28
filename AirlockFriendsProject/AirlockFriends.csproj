@@ -10,6 +10,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="AirlockFriendsManagers\**" />
+    <EmbeddedResource Remove="AirlockFriendsManagers\**" />
+    <None Remove="AirlockFriendsManagers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\MelonLoader\net6\0Harmony.dll</HintPath>
     </Reference>
@@ -82,10 +88,6 @@
     <Reference Include="UnityEngine.XRModule">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\MelonLoader\Il2CppAssemblies\UnityEngine.XRModule.dll</HintPath>
     </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="AirlockFriendsManagers\" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

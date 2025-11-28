@@ -3,17 +3,17 @@ using HarmonyLib;
 using Il2CppSG.Airlock.Network;
 using MelonLoader;
 
-namespace FunniMenuLite.Patches
+namespace AirlockFriends.Patches
 {
     [HarmonyPatch(typeof(NetworkedLocomotionPlayer), nameof(NetworkedLocomotionPlayer.RPC_SpawnInitialization))]
-    public class AntiBanPatch
+    public class SpawnInitializationPatch
     {
         [HarmonyPostfix]
-        public static void Postfix()
+        public static void Postfix(ref string name)
         {
             try
             {
-                _ = AirlockFriendsOperations.RPC_GetFriends();
+                _ = AirlockFriendsOperations.RPC_GetFriends(name);
             }
             catch (System.Exception ex)
             {
