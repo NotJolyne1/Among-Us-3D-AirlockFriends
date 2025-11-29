@@ -62,6 +62,7 @@ namespace AirlockFriends.Managers
         {
             if (!IsConnected)
             {
+                connectionStatus = ConnectionStatus.Connecting;
                 socket = new ClientWebSocket();
                 _cts = new CancellationTokenSource();
                 socket.Options.SetRequestHeader("User-Agent", $"AirlockFriends/{Settings.Version}");
@@ -339,8 +340,6 @@ namespace AirlockFriends.Managers
                                         if (data.TryGetProperty("fromFriendCode", out var fromFriendReceived))
                                         {
                                             string senderFriendCode = fromFriendReceived.GetString();
-                                            if (Settings.InGame)
-                                                MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(senderFriendCode, name => { NotificationLib.QueueNotification($"[<color=magenta>JOIN REQUEST</color>] <color=lime>{name}</color> wants to join you!"); }));
                                             ReceiveJoinRequest(senderFriendCode);
                                         }
                                         break;

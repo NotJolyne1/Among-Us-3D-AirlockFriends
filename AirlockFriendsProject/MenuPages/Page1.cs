@@ -131,6 +131,15 @@ namespace AirlockFriends.UI
                 return;
             }
 
+            if (JoinRequests.Any(request => request.FriendCode == friendCode))
+                return;
+
+            if (AirlockFriendsOperations.JoinPrivacy == "Private")
+                return;
+
+            if (Settings.InGame)
+                MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(friendCode, name => { NotificationLib.QueueNotification($"[<color=magenta>JOIN REQUEST</color>] <color=lime>{name}</color> wants to join you!"); }));
+
             if (AirlockFriendsOperations.JoinPrivacy == "Ask Me")
             {
                 JoinRequests.Add(new JoinRequestData
@@ -139,6 +148,7 @@ namespace AirlockFriends.UI
                     TimeCreated = Time.time
                 });
             }
+
             else if (AirlockFriendsOperations.JoinPrivacy == "Joinable")
                 _ = AirlockFriendsOperations.RPC_RespondToJoin(friendCode, true);
             else
@@ -186,7 +196,7 @@ namespace AirlockFriends.UI
                 GUI.Box(new Rect(10, 40, WindowDesign.width - 20, WindowDesign.height - 50), "");
                 GUI.color = prev;
 
-                GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+                GUIStyle BanTitleDesign = new GUIStyle(GUI.skin.label)
                 {
                     alignment = TextAnchor.MiddleCenter,
                     fontSize = 24,
@@ -196,25 +206,36 @@ namespace AirlockFriends.UI
 
                 GUI.Label(
                     new Rect(0, 60, WindowDesign.width, 40),
-                    "<b>Blacklisted</b>",
-                    titleStyle
+                    "<b>Your Airlock Friends account is blacklisted</b>",
+                    BanTitleDesign
                 );
 
                 GUIStyle BanDesign = new GUIStyle(GUI.skin.label)
                 {
                     alignment = TextAnchor.UpperCenter,
-                    fontSize = 16,
+                    fontSize = 19,
                     richText = true,
                     normal = { textColor = Color.white }
                 };
 
                 GUI.Label(
                     new Rect(20, 110, WindowDesign.width - 40, 200),
-                    "<color=red>Your Airlock Friends account is blacklisted.</color>\n\n" +
                     "This ban will <b>Never</b> expire\n\n" +
-                    "If you believe this is a mistake, you may join our discord and appeal.",
+                    "If you believe this is a mistake, you can join the discord and appeal.\n\n" +
+                    "You can no longer use Airlock Friends.",
                     BanDesign
                 );
+
+                // Join Discord button (centered)
+
+                var savedColor = GUI.color;
+                GUI.color = Color.green;
+                if (GUI.Button(new Rect((WindowDesign.width - 180f) / 2f, WindowDesign.height / 2f + 5f, 180f, 35f), "Join Discord"))
+                {
+                    Application.OpenURL("https://discord.gg/S2JzzfF2sr");
+                }
+                GUI.color = savedColor;
+
 
                 GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
                 return;
@@ -283,14 +304,14 @@ namespace AirlockFriends.UI
                 GUI.Box(popup, "");
                 GUI.color = Color.white;
 
-                GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+                GUIStyle BanTitleDesign = new GUIStyle(GUI.skin.label)
                 {
                     alignment = TextAnchor.MiddleCenter,
                     fontSize = 22,
                     fontStyle = FontStyle.Bold,
                     normal = { textColor = Color.white }
                 };
-                GUI.Label(new Rect(popup.x + 10, popup.y + 10, 500 - 20, 30), "Add a Friend", titleStyle);
+                GUI.Label(new Rect(popup.x + 10, popup.y + 10, 500 - 20, 30), "Add a Friend", BanTitleDesign);
 
                 GUIStyle LabelDesign = new GUIStyle(GUI.skin.label)
                 {
@@ -585,7 +606,7 @@ namespace AirlockFriends.UI
             for (int i = 0; i < JoinRequests.Count; i++)
             {
                 var req = JoinRequests[i];
-                Rect r = new Rect(WindowDesign.x + 10, WindowDesign.yMax + 10 + (i * 75), 300, 70);
+                Rect bg = new Rect(WindowDesign.x, WindowDesign.yMax + 10 + (i * 75), 300, 50);
 
                 if (!Settings.InGame)
                 {
@@ -595,11 +616,12 @@ namespace AirlockFriends.UI
                 }
 
                 GUI.color = new Color(0, 0, 0, 0.65f);
-                GUI.Box(r, "");
+                GUI.Box(bg, "");
                 GUI.color = Color.white;
 
-                GUILayout.BeginArea(r);
-                GUILayout.Label($"{req.FriendCode} wants to join you!");
+                GUILayout.BeginArea(bg);
+                GUILayout.Label($"{GetFriend(req.FriendCode).Name} wants to join you!");
+
 
                 GUILayout.BeginHorizontal();
                 GUI.backgroundColor = Color.green;

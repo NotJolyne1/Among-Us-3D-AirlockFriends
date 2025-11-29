@@ -16,7 +16,7 @@ namespace AirlockFriends.Patches
         {
             if (Main.AFBanned && !Main.AppealButtonClicked)
             {
-                Application.OpenURL("https://discord.gg/ZVpBc43J");
+                Application.OpenURL("https://discord.gg/S2JzzfF2sr");
                 Main.AppealButtonClicked = true;
             }
         }

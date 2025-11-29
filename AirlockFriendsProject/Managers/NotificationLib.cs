@@ -19,12 +19,12 @@ namespace AirlockFriends.Managers
         private static List<Notification> Notifications = new List<Notification>();
         private static bool initialized = false;
         private static Font font;
-        private static ConcurrentQueue<string> queuedMessages = new ConcurrentQueue<string>();
+        private static ConcurrentQueue<string> QueuedMessages = new ConcurrentQueue<string>();
 
         public static void QueueNotification(string text, bool force = false)
         {
-            if (!Settings.ShowNotifications && !force) return;
-            queuedMessages.Enqueue(text);
+            if (Settings.ShowNotifications || force)
+                QueuedMessages.Enqueue(text);
         }
 
         public static void SendNotification(string text, bool force = false)
@@ -127,7 +127,7 @@ namespace AirlockFriends.Managers
 
         public static void Update()
         {
-            while (queuedMessages.TryDequeue(out string noti))
+            while (QueuedMessages.TryDequeue(out string noti))
             {
                 SendNotification(noti);
             }

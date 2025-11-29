@@ -69,7 +69,10 @@ namespace AirlockFriends.Managers
         public static IEnumerator AttemptReconnection(bool NotCrash = false)
         {
             if (Reconnecting || Main.AFBanned)
+            {
+                if (Main.AFBanned) connectionStatus = ConnectionStatus.Rejected;
                 yield break;
+            }
             int connectionAttempts = 0;
             if (!NotCrash)
             {
@@ -80,6 +83,7 @@ namespace AirlockFriends.Managers
 
             while (!AirlockFriendsOperations.IsConnected)
             {
+                connectionStatus = ConnectionStatus.Disconnected;
                 Reconnecting = true;
                 yield return new WaitForSeconds(1f);
                 AirlockFriendsOperations.PrepareAuthentication();
