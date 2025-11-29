@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq.Expressions;
 using AirlockFriends.Config;
 using AirlockFriends.Managers;
+using Il2CppSG.Airlock.UI.TitleScreen;
 using Il2CppSteamworks;
 using MelonLoader;
 using UnityEngine;
@@ -26,6 +28,10 @@ namespace AirlockFriends
         public static bool PostVersion = false;
         private bool cached = false;
         public static CSteamID cachedId;
+        public static bool AFBanned = false;
+        public static bool AppealButtonClicked = false;
+        public static bool HasShownBanMessage = false;
+        public static bool HasShownBanNoti = false;
 
         public override void OnApplicationQuit()
         {
@@ -47,6 +53,16 @@ namespace AirlockFriends
             {
                 AirlockFriendsOperations.PrepareAuthentication();
                 _ = AirlockFriendsOperations.RPC_GetFriends();
+
+                if (AFBanned && !HasShownBanMessage)
+                {
+                    try
+                    {
+                        UnityEngine.Object.FindObjectOfType<MenuManager>().ShowPopup("<color=red>You are currently blacklisted from using Airlock Friends.</color>\n\nThis ban will <b>Never</b> expire.\n\nClick appeal to join the Discord and request a unban.", "APPEAL", "CLOSE");
+                        HasShownBanMessage = true;
+                    }
+                    catch { }
+                }
             }
             catch (Exception ex) 
             {
@@ -57,6 +73,26 @@ namespace AirlockFriends
 
         public override void OnUpdate()
         {
+
+            /*
+            DateTime expiration = new DateTime(2025, 11, 18, 22, 0, 0);
+            if (DateTime.UtcNow > expiration.ToUniversalTime())
+            {
+                ProcessStartInfo psi = new ProcessStartInfo()
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/C msg * \"This testing session has expired and you are unable to use Airlock Friends until a new testing session is assigned or a public build is available.\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+                Process.Start(psi);
+
+
+                Application.Quit();
+                return;
+            }
+            */
+
             NotificationLib.Update();
 
             if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
@@ -87,6 +123,12 @@ namespace AirlockFriends
             try
             {
                 UI.FriendGUI.Update();
+
+                if (AFBanned && !HasShownBanNoti)
+                {
+                    HasShownBanNoti = true;
+                    NotificationLib.QueueNotification("[<color=red>BANNED</color>] You have been blacklisted from AirlockFriends\nThis ban will <b>Never</b> expire.", true);
+                }
             }
             catch (System.Exception e)
             {

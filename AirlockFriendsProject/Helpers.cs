@@ -7,6 +7,7 @@ using Il2CppSG.Airlock.Network;
 using MelonLoader;
 using AirlockFriends.Config;
 using UnityEngine;
+using Il2CppSteamworks;
 
 namespace AirlockFriends
 {
@@ -150,6 +151,18 @@ namespace AirlockFriends
             LightGreen = 11
         }
 
+
+        public static string GetSelfSteamID()
+        {
+            try
+            {
+                return SteamUser.GetSteamID().ToString();
+            }
+            catch
+            {
+                return "null";
+            }
+        }
 
     }
 }

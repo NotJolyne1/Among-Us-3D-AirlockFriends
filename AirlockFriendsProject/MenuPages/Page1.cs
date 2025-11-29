@@ -15,19 +15,19 @@ namespace AirlockFriends.UI
         {
             private static Rect WindowDesign = new Rect(300, 100, 700, 500);
             private static Vector2 scroll;
-            private static bool FriendRequestsPage = false;
             private static readonly List<FriendInfo> friends = new List<FriendInfo>();
             public static readonly List<string> FriendRequests = new List<string>();
             private static readonly List<InviteData> ActiveInvites = new();
             private static readonly List<JoinRequestData> JoinRequests = new();
             public static bool NewFriendRequest = false;
             private static bool onSettingsPage = false;
+            private static bool FriendRequestsPage = false;
             private static int JoinIndex = 0;
             private static readonly string[] JoinSettings = new string[] { "Joinable", "Ask Me", "Private" };
 
-            private static bool allowFriendRequests = AirlockFriendsOperations.AllowFriendRequests;
-            private static bool allowMessages = AirlockFriendsOperations.AllowMessages;
-            private static bool allowInvites = AirlockFriendsOperations.AllowInvites;
+            private static bool _allowFriendRequests = AirlockFriendsOperations.AllowFriendRequests;
+            private static bool _allowMessages = AirlockFriendsOperations.AllowMessages;
+            private static bool _allowInvites = AirlockFriendsOperations.AllowInvites;
 
 
 
@@ -179,6 +179,48 @@ namespace AirlockFriends.UI
         {
             GUI.Box(new Rect(0, 0, WindowDesign.width, WindowDesign.height), $"AIRLOCK FRIENDS: BETA {Settings.Version}");
 
+            if (Main.AFBanned)
+            {
+                Color prev = GUI.color;
+                GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+                GUI.Box(new Rect(10, 40, WindowDesign.width - 20, WindowDesign.height - 50), "");
+                GUI.color = prev;
+
+                GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 24,
+                    richText = true,
+                    normal = { textColor = Color.red }
+                };
+
+                GUI.Label(
+                    new Rect(0, 60, WindowDesign.width, 40),
+                    "<b>Blacklisted</b>",
+                    titleStyle
+                );
+
+                GUIStyle BanDesign = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.UpperCenter,
+                    fontSize = 16,
+                    richText = true,
+                    normal = { textColor = Color.white }
+                };
+
+                GUI.Label(
+                    new Rect(20, 110, WindowDesign.width - 40, 200),
+                    "<color=red>Your Airlock Friends account is blacklisted.</color>\n\n" +
+                    "This ban will <b>Never</b> expire\n\n" +
+                    "If you believe this is a mistake, you may join our discord and appeal.",
+                    BanDesign
+                );
+
+                GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
+                return;
+            }
+
+
             if (onSettingsPage)
             {
                 DrawSettingsPage();
@@ -219,8 +261,6 @@ namespace AirlockFriends.UI
                 DrawRequestsPage();
             else
                 DrawFriendsList();
-
-
 
             GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
         }
@@ -589,9 +629,9 @@ namespace AirlockFriends.UI
         {
             if (!initializedSettings)
             {
-                allowFriendRequests = AirlockFriendsOperations.AllowFriendRequests;
-                allowMessages = AirlockFriendsOperations.AllowMessages;
-                allowInvites = AirlockFriendsOperations.AllowInvites;
+                _allowFriendRequests = AirlockFriendsOperations.AllowFriendRequests;
+                _allowMessages = AirlockFriendsOperations.AllowMessages;
+                _allowInvites = AirlockFriendsOperations.AllowInvites;
                 JoinIndex = Array.IndexOf(JoinSettings, AirlockFriendsOperations.JoinPrivacy);
                 if (JoinIndex == -1) JoinIndex = 0;
 
@@ -629,13 +669,13 @@ namespace AirlockFriends.UI
             JoinIndex = GUI.SelectionGrid(new Rect(250, y, controlWidth, 30), JoinIndex, JoinSettings, JoinSettings.Length);
             y += spacing;
 
-            allowFriendRequests = GUI.Toggle(new Rect(50, y, controlWidth, 30), allowFriendRequests, "Allow Friend Requests");
+            _allowFriendRequests = GUI.Toggle(new Rect(50, y, controlWidth, 30), _allowFriendRequests, "Allow Friend Requests");
             y += spacing - 10;
 
-            allowMessages = GUI.Toggle(new Rect(50, y, controlWidth, 30), allowMessages, "Allow Messages");
+            _allowMessages = GUI.Toggle(new Rect(50, y, controlWidth, 30), _allowMessages, "Allow Messages");
             y += spacing - 10;
 
-            allowInvites = GUI.Toggle(new Rect(50, y, controlWidth, 30), allowInvites, "Allow Invites");
+            _allowInvites = GUI.Toggle(new Rect(50, y, controlWidth, 30), _allowInvites, "Allow Invites");
             y += spacing;
 
             GUI.backgroundColor = new Color(0.2f, 0.6f, 1f);
@@ -643,13 +683,13 @@ namespace AirlockFriends.UI
             if (GUI.Button(new Rect(50, y, 200, 40), "Apply Settings"))
             {
                 _ = AirlockFriendsOperations.RPC_UpdateSettings(
-                    allowFriendRequests,
+                    _allowFriendRequests,
                     JoinSettings[JoinIndex],
-                    allowMessages,
-                    allowInvites
+                    _allowMessages,
+                    _allowInvites
                 );
 
-                NotificationLib.QueueNotification("[<color=lime>SUCCESS</color>] Updated and sent to server!");
+                NotificationLib.QueueNotification("[<color=lime>SUCCESS</color>] Your settings have been updated.");
             }
             GUI.backgroundColor = Color.white;
             GUI.contentColor = Color.white;

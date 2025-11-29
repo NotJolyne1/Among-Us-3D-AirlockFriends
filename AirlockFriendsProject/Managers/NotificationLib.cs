@@ -61,7 +61,6 @@ namespace AirlockFriends.Managers
                 textMesh = textMesh,
                 SpawnTime = Time.time
             });
-
             UpdatePositions();
         }
 
@@ -128,21 +127,29 @@ namespace AirlockFriends.Managers
 
         public static void Update()
         {
-            while (queuedMessages.TryDequeue(out string msg))
+            while (queuedMessages.TryDequeue(out string noti))
             {
-                SendNotification(msg);
+                SendNotification(noti);
             }
 
             if (!initialized || Camera.main == null) return;
 
             for (int i = Notifications.Count - 1; i >= 0; i--)
             {
-                if (Time.time - Notifications[i].SpawnTime > Settings.NotiDuration)
+                try
                 {
-                    if (Notifications[i].textMesh != null)
-                        Destroy(Notifications[i].textMesh.gameObject);
-                    Notifications.RemoveAt(i);
+                    float duration = Notifications[i].textMesh.text.Contains("blacklisted") ? 15f : Settings.NotiDuration;
+
+                    if (Time.time - Notifications[i].SpawnTime > duration)
+                    {
+                        if (Notifications[i].textMesh != null)
+                            Destroy(Notifications[i].textMesh.gameObject);
+
+                        Notifications.RemoveAt(i);
+                    }
                 }
+                catch { }
+
             }
             UpdatePositions();
         }

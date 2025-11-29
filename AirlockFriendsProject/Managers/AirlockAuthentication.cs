@@ -68,7 +68,7 @@ namespace AirlockFriends.Managers
 
         public static IEnumerator AttemptReconnection(bool NotCrash = false)
         {
-            if (Reconnecting)
+            if (Reconnecting || Main.AFBanned)
                 yield break;
             int connectionAttempts = 0;
             if (!NotCrash)

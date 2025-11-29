@@ -14,7 +14,9 @@ using Il2CppSG.Airlock.Graphics;
 using Il2CppSG.Airlock.Network;
 using Il2CppSG.Airlock.Roles;
 using Il2CppSG.Airlock.Sabotage;
+using Il2CppSG.Airlock.UI.TitleScreen;
 using Il2CppSG.Airlock.XR;
+using Il2CppSteamworks;
 using MelonLoader;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -87,7 +89,8 @@ namespace AirlockFriends.Managers
                 var authPayload = new
                 {
                     type = "authenticate",
-                    privateKey = PrivateKey
+                    privateKey = PrivateKey,
+                    steamID = Helpers.GetSelfSteamID(),
                 };
 
                 string json = System.Text.Json.JsonSerializer.Serialize(authPayload);
@@ -95,6 +98,7 @@ namespace AirlockFriends.Managers
                 MelonLogger.Msg("[AirlockFriends] Sent authentication request to server.");
             }
         }
+
 
         private static async Task ReceiveLoop()
         {
@@ -113,6 +117,8 @@ namespace AirlockFriends.Managers
                     {
                         string msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
                         MelonLogger.Msg($"[AirlockFriends] Server raw: {msg}");
+                        if (msg.Contains("This account"))
+                            Main.AFBanned = true;
 
                         try
                         {
@@ -586,7 +592,7 @@ namespace AirlockFriends.Managers
             if (updateSelf)
             {
                 var rig = UnityEngine.Object.FindObjectOfType<XRRig>();
-                if (rig != null && !rig.PState.NetworkName.Value.Contains("#"))
+                if (rig != null && !rig.PState.NetworkName.Value.Contains("#") && !rig.PState.IsSpectating)
                     MyName = rig.PState.NetworkName.Value ?? "";
                 else
                     MyName = name;
