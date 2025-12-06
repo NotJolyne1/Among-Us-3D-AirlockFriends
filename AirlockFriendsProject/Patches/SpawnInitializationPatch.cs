@@ -9,11 +9,11 @@ namespace AirlockFriends.Patches
     public class SpawnInitializationPatch
     {
         [HarmonyPostfix]
-        public static void Postfix(ref string name)
+        public static void Postfix(ref string name, ref string moderationUsername)
         {
             try
             {
-                _ = AirlockFriendsOperations.RPC_GetFriends(name);
+                _ = AirlockFriendsOperations.RPC_NotifyFriendGroup(name, ModName: moderationUsername);
             }
             catch (System.Exception ex)
             {

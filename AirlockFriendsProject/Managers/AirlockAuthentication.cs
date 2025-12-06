@@ -3,6 +3,7 @@ using System.IO;
 using UnityEngine;
 using MelonLoader;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace AirlockFriends.Managers
 {
@@ -11,6 +12,10 @@ namespace AirlockFriends.Managers
         public static bool Reconnecting = false;
         private static string FilePath = Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
         public static ConnectionStatus connectionStatus = ConnectionStatus.Disconnected;
+
+
+
+
         public static string PrepareAuthenticationKey()
         {
             try
@@ -68,13 +73,15 @@ namespace AirlockFriends.Managers
 
         public static IEnumerator AttemptReconnection(bool NotCrash = false)
         {
-            if (Reconnecting || Main.AFBanned)
-            {
-                if (Main.AFBanned) connectionStatus = ConnectionStatus.Rejected;
+            if (Reconnecting)
                 yield break;
-            }
+
+            if (Main.AFBanned)
+                connectionStatus = ConnectionStatus.Rejected;
+
+
             int connectionAttempts = 0;
-            if (!NotCrash)
+            if (!NotCrash && !Main.AFBanned)
             {
                 MelonLogger.Warning("[AirlockFriends] Connection to the server was lost! Attempting to reconnect...");
                 MelonLogger.Warning("[AirlockFriends] This can be due to a server restart, maintenance, or the server being updated.");
@@ -92,6 +99,18 @@ namespace AirlockFriends.Managers
             }
             Reconnecting = false;
             MelonLogger.Msg("[AirlockFriends] Successfully reconnected!");
+        }
+
+        public static IEnumerator NotifyFriendGroup()
+        {
+            while (true)
+            {
+                if (AirlockFriendsOperations.IsConnected)
+                {
+                    _ = AirlockFriendsOperations.RPC_NotifyFriendGroup(updateSelf: false);
+                }
+                yield return new WaitForSeconds(4f);
+            }
         }
 
     }

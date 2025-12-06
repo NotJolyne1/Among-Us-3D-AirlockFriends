@@ -32,10 +32,10 @@ namespace AirlockFriends
         public static bool AppealButtonClicked = false;
         public static bool HasShownBanMessage = false;
         public static bool HasShownBanNoti = false;
-
+        private static bool NotifyingFriends = false;
         public override void OnApplicationQuit()
         {
-            MelonLogger.Msg("Thank you for using Airlock Friends!");
+			MelonLogger.Msg("Thank you for using Airlock Friends!");
         }
 
         [System.Obsolete]
@@ -52,8 +52,13 @@ namespace AirlockFriends
             try
             {
                 AirlockFriendsOperations.PrepareAuthentication();
-                _ = AirlockFriendsOperations.RPC_GetFriends();
+                _ = AirlockFriendsOperations.RPC_NotifyFriendGroup();
 
+                if (!NotifyingFriends)
+                {
+                    NotifyingFriends = true;
+					MelonCoroutines.Start(AirlockFriendsAuth.NotifyFriendGroup());
+                }
                 if (AFBanned && !HasShownBanMessage)
                 {
                     try
