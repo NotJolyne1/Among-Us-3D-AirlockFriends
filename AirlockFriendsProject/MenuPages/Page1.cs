@@ -666,74 +666,86 @@ namespace AirlockFriends.UI
                 _allowMessages = AirlockFriendsOperations.AllowMessages;
                 _allowInvites = AirlockFriendsOperations.AllowInvites;
                 JoinIndex = Array.IndexOf(JoinSettings, AirlockFriendsOperations.JoinPrivacy);
-                if (JoinIndex == -1) JoinIndex = 0;
-
+                if (JoinIndex == -1)
+                    JoinIndex = 0;
                 initializedSettings = true;
             }
 
             GUI.backgroundColor = new Color(0.2f, 0.6f, 1f);
-            if (GUI.Button(new Rect(10, 10, 80, 30), "< Back"))
+            if (GUI.Button(new Rect(20, 20, 90, 40), "Back"))
             {
                 onSettingsPage = false;
                 initializedSettings = false;
             }
             GUI.backgroundColor = Color.white;
 
-            GUI.Label(new Rect(0, 50, WindowDesign.width, 30),
-                "Settings",
-                new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = 24,
-                    fontStyle = FontStyle.Bold,
-                    normal = { textColor = Color.cyan }
-                });
-
-            float y = 100;
-            float labelWidth = 200;
-            float controlWidth = 400;
-            float spacing = 50;
-
-            GUI.Label(new Rect(50, y, labelWidth, 25), "Join Privacy:", new GUIStyle(GUI.skin.label)
+            GUIStyle TitleDesign = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 16,
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 28,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.cyan }
+            };
+            GUI.Label(new Rect(0, 30, WindowDesign.width, 40), "Settings", TitleDesign);
+
+            Rect Panel = new Rect(20, 80, WindowDesign.width - 40, WindowDesign.height - 110);
+            GUI.color = new Color(0.12f, 0.12f, 0.12f, 0.9f);
+            GUI.Box(Panel, "");
+            GUI.color = Color.white;
+
+            GUIStyle LabelDesign = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 19,
                 normal = { textColor = Color.white }
-            });
-            JoinIndex = GUI.SelectionGrid(new Rect(250, y, controlWidth, 30), JoinIndex, JoinSettings, JoinSettings.Length);
-            y += spacing;
+            };
 
-            _allowFriendRequests = GUI.Toggle(new Rect(50, y, controlWidth, 30), _allowFriendRequests, "Allow Friend Requests");
-            y += spacing - 10;
+            GUIStyle RadioDesign = new GUIStyle(GUI.skin.toggle)
+            {
+                fontSize = 17,
+                normal = { textColor = Color.white }
+            };
 
-            _allowMessages = GUI.Toggle(new Rect(50, y, controlWidth, 30), _allowMessages, "Allow Messages");
-            y += spacing - 10;
+            GUI.Label(new Rect(Panel.x + 25, Panel.y + 25, 300, 28), "Join Privacy", LabelDesign);
 
-            _allowInvites = GUI.Toggle(new Rect(50, y, controlWidth, 30), _allowInvites, "Allow Invites");
-            y += spacing;
+            GUI.Toggle(new Rect(Panel.x + 40, Panel.y + 25 + 36, 300, 26), JoinIndex == 0, JoinSettings[0], RadioDesign);
+            if (GUI.Toggle(new Rect(Panel.x + 40, Panel.y + 25 + 36, 300, 26), JoinIndex == 0, JoinSettings[0], RadioDesign)) JoinIndex = 0;
+
+            GUI.Toggle(new Rect(Panel.x + 40, Panel.y + 25 + 66, 300, 26), JoinIndex == 1, JoinSettings[1], RadioDesign);
+            if (GUI.Toggle(new Rect(Panel.x + 40, Panel.y + 25 + 66, 300, 26), JoinIndex == 1, JoinSettings[1], RadioDesign)) JoinIndex = 1;
+
+            GUI.Toggle(new Rect(Panel.x + 40, Panel.y + 25 + 96, 300, 26), JoinIndex == 2, JoinSettings[2], RadioDesign);
+            if (GUI.Toggle(new Rect(Panel.x + 40, Panel.y + 25 + 96, 300, 26), JoinIndex == 2, JoinSettings[2], RadioDesign)) JoinIndex = 2;
+
+            GUI.DrawTexture(new Rect(Panel.x + 20, Panel.y + 25 + 134, Panel.width - 40, 1), Texture2D.whiteTexture);
+
+            _allowFriendRequests = GUI.Toggle(new Rect(Panel.x + 25, Panel.y + 25 + 160, 300, 30), _allowFriendRequests, "Allow Friend Requests");
+            _allowMessages = GUI.Toggle(new Rect(Panel.x + 25, Panel.y + 25 + 194, 300, 30), _allowMessages, "Allow Messages");
+            _allowInvites = GUI.Toggle(new Rect(Panel.x + 25, Panel.y + 25 + 228, 300, 30), _allowInvites, "Allow Invites");
 
             GUI.backgroundColor = new Color(0.2f, 0.6f, 1f);
             GUI.contentColor = Color.white;
-            if (GUI.Button(new Rect(50, y, 200, 40), "Apply Settings"))
-            {
-                _ = AirlockFriendsOperations.RPC_UpdateSettings(
-                    _allowFriendRequests,
-                    JoinSettings[JoinIndex],
-                    _allowMessages,
-                    _allowInvites
-                );
 
+            GUI.Button(new Rect(Panel.x + 25, Panel.y + Panel.height - 70, Panel.width - 50, 50), "Apply Settings");
+            if (GUI.Button(new Rect(Panel.x + 25, Panel.y + Panel.height - 70, Panel.width - 50, 50), "Apply Settings"))
+            {
+                _ = AirlockFriendsOperations.RPC_UpdateSettings(_allowFriendRequests, JoinSettings[JoinIndex], _allowMessages, _allowInvites);
                 NotificationLib.QueueNotification("[<color=lime>SUCCESS</color>] Your settings have been updated.");
             }
+
             GUI.backgroundColor = Color.white;
             GUI.contentColor = Color.white;
-            y += 50;
 
-            GUI.Label(new Rect(50, y, 600, 25), $"Debug: Connection Status = {AirlockFriendsAuth.connectionStatus}",
-                new GUIStyle(GUI.skin.label)
-                {
-                    fontSize = 14,
-                    normal = { textColor = Color.yellow }
-                });
+            GUIStyle DebugDesign = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13,
+                normal = { textColor = Color.yellow }
+            };
+
+            GUI.Label(new Rect(30, WindowDesign.height - 27, 600, 25),
+                $"Debug: Connection Status: {AirlockFriendsAuth.connectionStatus}",
+                DebugDesign);
         }
+
+
     }
 }

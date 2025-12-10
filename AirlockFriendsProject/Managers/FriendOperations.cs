@@ -159,7 +159,7 @@ namespace AirlockFriends.Managers
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
                         string msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        MelonLogger.Msg($"[AirlockFriends] [DEBUG] Server raw: {msg}");
+                        if (!msg.Contains("friendsList")) MelonLogger.Msg($"[AirlockFriends] [DEBUG] Server raw: {msg}");
                         if (msg.Contains("This account"))
                             Main.AFBanned = true;
 
@@ -331,7 +331,7 @@ namespace AirlockFriends.Managers
                                             string sender = SenderCode.GetString();
                                             string Message = MessageContent.GetString();
                                             MelonLogger.Msg($"[AirlockFriends] Message from {sender}: {Message}");
-                                            NotificationLib.QueueNotification($"[<color=magenta>MESSAGE</color>] From: <color=lime>{sender}</color> {Message}");
+                                            NotificationLib.QueueNotification($"[<color=magenta>MESSAGE</color>] From: <color=lime>{GetFriend(sender).Name}</color> {Message}");
                                             ReceiveDirectMessage(sender, GetFriend(sender).Name, Message);
                                         }
                                         break;
@@ -340,8 +340,8 @@ namespace AirlockFriends.Managers
                                         if (data.TryGetProperty("targetFriendCode", out var ToFriendCode))
                                         {
                                             string target = ToFriendCode.GetString();
-                                            MelonLogger.Msg($"[AirlockFriends] Message sent to {target}!");
-                                            NotificationLib.QueueNotification($"[<color=magenta>SENT</color>] Sent message to <color=lime>{target}</color>!");
+                                            MelonLogger.Msg($"[AirlockFriends] Message sent to {GetFriend(target).Name}!");
+                                            NotificationLib.QueueNotification($"[<color=magenta>SENT</color>] Sent message to <color=lime>{GetFriend(target).Name}</color>!");
                                         }
                                         break;
 
@@ -445,7 +445,7 @@ namespace AirlockFriends.Managers
                         catch (Exception ex)
                         {
                             MelonLogger.Error($"[AirlockFriends] Failed to deserialize reliable: {ex.Message}");
-                            NotificationLib.QueueNotification($"[AirlockFriends] Failed to deserialize reliable.\nPlease report this to us.\n: {ex.Message}");
+                            NotificationLib.QueueNotification($"[<color=red>ERROR</color>] Failed to deserialize reliable.\nPlease report this to us.\n: Check your console for for info");
                         }
                     }
                 }
@@ -812,15 +812,14 @@ namespace AirlockFriends.Managers
                     AirlockFriendsAuth.connectionStatus = AirlockFriendsAuth.ConnectionStatus.Disconnected;
 
                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnected", _cts.Token);
-                MelonLogger.Msg("[AirlockFriends] Disconnected from WS server.");
-                NotificationLib.QueueNotification("[<color=magenta>Disconnect</color>] Disconnected from WS server.");
+                MelonLogger.Msg("[AirlockFriends] Disconnected from Websocket server.");
+                NotificationLib.QueueNotification("[<color=magenta>Disconnect</color>] Disconnected from Websocket Server.");
             }
             catch (Exception ex)
             {
                 MelonLogger.Error("[AirlockFriends] Disconnect failed: " + ex.Message);
             }
         }
-
 
 
 

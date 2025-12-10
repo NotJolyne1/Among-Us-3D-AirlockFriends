@@ -43,7 +43,7 @@ namespace AirlockFriends
         public static PlayerState GetPlayerStateById(int playerId)
         {
 
-            foreach (PlayerState player in GameReferences.Spawn.PlayerStates)
+            foreach (PlayerState player in UnityEngine.Object.FindObjectOfType<SpawnManager>().ActivePlayerStates)
             {
                 string playerName = player.NetworkName?.Value ?? "Unknown";
 
