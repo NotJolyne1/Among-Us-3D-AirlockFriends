@@ -39,8 +39,8 @@ namespace AirlockFriends.Managers
         public static bool AllowMessages = true;
         public static bool AllowInvites = true;
 
-        private static ClientWebSocket socket;
-        private static CancellationTokenSource _cts;
+        public static ClientWebSocket socket;
+        private static CancellationTokenSource cts;
         public static readonly string[] UnwantedNames = {
             "Red", "Blue", "Green", "Pink", "Orange",
             "Yellow", "Black", "White", "Purple", "Brown",
@@ -56,12 +56,8 @@ namespace AirlockFriends.Managers
         {
             try
             {
-                MelonLogger.Msg($"[AirlockFriends] DEBUG: IsUnwantedName input='{name}'");
                 if (string.IsNullOrEmpty(name))
-                {
-                    MelonLogger.Msg("[AirlockFriends] DEBUG: name is null/empty -> false");
                     return false;
-                }
 
                 var checks = new List<string> { name };
                 checks.Add(new string(name.Where(char.IsLetter).ToArray()));
@@ -75,13 +71,11 @@ namespace AirlockFriends.Managers
                             return true;
                     }
                 }
-
-                MelonLogger.Msg($"[AirlockFriends] DEBUG: IsUnwantedName -> NO MATCH for '{name}'");
                 return false;
             }
             catch (Exception ex)
             {
-                MelonLogger.Msg($"[AirlockFriends] ERROR: IsUnwantedName exception: {ex}");
+                MelonLogger.Msg($"[AirlockFriends] Failed to check name: {ex}");
                 return false;
             }
         }
@@ -106,13 +100,13 @@ namespace AirlockFriends.Managers
             {
                 connectionStatus = ConnectionStatus.Connecting;
                 socket = new ClientWebSocket();
-                _cts = new CancellationTokenSource();
+                cts = new CancellationTokenSource();
                 socket.Options.SetRequestHeader("User-Agent", $"AirlockFriends/{Settings.Version}");
 
                 try
                 {
                     var serverUri = new Uri("wss://lank-lucretia-timocratical.ngrok-free.dev");
-                    await socket.ConnectAsync(serverUri, _cts.Token);
+                    await socket.ConnectAsync(serverUri, cts.Token);
                     MelonLogger.Msg("[AirlockFriends] Connected to server!");
                     _ = Task.Run(ReceiveLoop);
                 }
@@ -151,7 +145,7 @@ namespace AirlockFriends.Managers
             {
                 try
                 {
-                    var result = await socket.ReceiveAsync(buffer, _cts.Token);
+                    var result = await socket.ReceiveAsync(buffer, cts.Token);
 
                     if (result.MessageType == WebSocketMessageType.Close)
                         break;
@@ -411,6 +405,13 @@ namespace AirlockFriends.Managers
                                             {
                                                 MelonLogger.Msg($"[AirlockFriends] {GetFriend(JoiningFriend).Name} accepted your join request. Room: {roomCode}");
                                                 NotificationLib.QueueNotification($"[<color=lime>JOIN ACCEPTED</color>] <color=lime>{GetFriend(JoiningFriend).Name}</color> is in room {roomCode}!");
+
+                                                AcceptedJoinRequests.Add(new AcceptedJoinRequestData
+                                                {
+                                                    FriendCode = JoiningFriend,
+                                                    TimeAccepted = Time.time,
+                                                    RoomID = roomCode
+                                                });
                                             }
                                             else
                                             {
@@ -461,12 +462,13 @@ namespace AirlockFriends.Managers
         }
         
 
+        // Raise reliable
         public static async Task RaiseEvent(string OperationInfo)
         {
             if (IsConnected)
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(OperationInfo);
-                await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, _cts.Token);
+                await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cts.Token);
             }
         }
 
@@ -574,8 +576,8 @@ namespace AirlockFriends.Managers
             string json = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(json);
             MelonLogger.Msg($"[AirlockFriends] Removed friend {RemovingFriend}");
+            MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(RemovingFriend, name => NotificationLib.QueueNotification($"[<color=red>UNFRIEND</color>] Unfriended {name}")));
         }
-
 
 
 
@@ -798,7 +800,6 @@ namespace AirlockFriends.Managers
 
 
 
-
         public static async Task Disconnect(bool force = false, bool rejected = false)
         {
             if (!IsConnected) return;
@@ -811,7 +812,8 @@ namespace AirlockFriends.Managers
                 else
                     AirlockFriendsAuth.connectionStatus = AirlockFriendsAuth.ConnectionStatus.Disconnected;
 
-                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnected", _cts.Token);
+                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnected", cts.Token);
+
                 MelonLogger.Msg("[AirlockFriends] Disconnected from Websocket server.");
                 NotificationLib.QueueNotification("[<color=magenta>Disconnect</color>] Disconnected from Websocket Server.");
             }
