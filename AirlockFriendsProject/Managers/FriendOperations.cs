@@ -430,6 +430,64 @@ namespace AirlockFriends.Managers
                                         break;
 
 
+
+
+                                    case "inviteResponseResult":
+                                        {
+                                            if (!data.TryGetProperty("fromFriendCode", out var SenderFriend) ||
+                                                !data.TryGetProperty("accepted", out var WasAccepted))
+                                                break;
+
+                                            string FriendID = SenderFriend.GetString();
+                                            bool accepted = WasAccepted.GetBoolean();
+
+                                            var friend = FriendGUI.GetFriend(FriendID);
+                                            string FriendName = friend != null ? friend.Name : FriendID;
+
+                                            if (accepted)
+                                            {
+                                                MelonLogger.Msg($"[AirlockFriends] {FriendName} accepted your invite!");
+                                                NotificationLib.QueueNotification(
+                                                    $"[<color=lime>JOIN ACCEPTED</color>] <color=lime>{FriendName}</color> accepted your invite!"
+                                                );
+                                            }
+                                            else
+                                            {
+                                                MelonLogger.Msg($"[AirlockFriends] {FriendName} denied your invite!");
+                                                NotificationLib.QueueNotification(
+                                                    $"[<color=red>Denied</color>] <color=lime>{FriendName}</color> did not accept your invite!"
+                                                );
+                                            }
+                                            break;
+                                        }
+
+
+
+
+
+                                    case "inviteReceived":
+                                        if (data.TryGetProperty("fromFriendCode", out var fromWho) && data.TryGetProperty("roomID", out var RoomID))
+                                        {
+                                            string FriendID = fromWho.GetString();
+                                            string roomCode = RoomID.GetString();
+
+                                            ReceiveInvite(FriendID, roomCode);
+                                        }
+                                        break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                                     case "GetPlayerName":
                                         string friendCode = data.TryGetProperty("friendCode", out var friendcode) ? friendcode.GetString() : "UnknownCode";
                                         string name = data.TryGetProperty("name", out var nameProp) && nameProp.ValueKind != System.Text.Json.JsonValueKind.Null ? nameProp.GetString() : "UnknownName";
@@ -690,6 +748,40 @@ namespace AirlockFriends.Managers
             string json = System.Text.Json.JsonSerializer.Serialize(payload);
             await RaiseEvent(json);
             MelonLogger.Msg($"[AirlockFriends] Sent join request to {targetFriendCode}");
+        }
+
+        public static async Task RPC_SendInvite(string targetFriendCode, string roomID)
+        {
+            if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
+
+            var payload = new
+            {
+                type = "sendInvite",
+                fromPrivateKey = PrivateKey,
+                targetFriendCode = targetFriendCode,
+                roomID = roomID
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(json);
+            MelonLogger.Msg($"[AirlockFriends] Sent join request to {targetFriendCode}");
+        }
+
+
+        public static async Task RPC_RespondToInvite(string targetFriendCode, bool accepted)
+        {
+            if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
+
+            var payload = new
+            {
+                type = "inviteResponse",
+                fromPrivateKey = PrivateKey,
+                targetFriendCode = targetFriendCode,
+                accepted = accepted
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(json);
         }
 
         public static async Task RPC_RespondToJoin(string senderFriendCode, bool accepted, bool InGame = true)

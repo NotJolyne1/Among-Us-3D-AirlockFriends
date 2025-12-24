@@ -24,6 +24,8 @@ namespace AirlockFriends.UI
         private static readonly List<InviteData> ActiveInvites = new();
         private static readonly List<JoinRequestData> JoinRequests = new();
         public static readonly List<AcceptedJoinRequestData> AcceptedJoinRequests = new();
+        public static readonly List<AcceptedInviteRequestData> AcceptedInviteRequests = new();
+
         private static readonly string[] JoinSettings = new string[] { "Joinable", "Ask Me", "Private" };
         private static int JoinIndex = 0;
         public static bool NewFriendRequest = false;
@@ -34,7 +36,6 @@ namespace AirlockFriends.UI
         private static bool _allowFriendRequests = AirlockFriendsOperations.AllowFriendRequests;
         private static bool _allowMessages = AirlockFriendsOperations.AllowMessages;
         private static bool _allowInvites = AirlockFriendsOperations.AllowInvites;
-        private const float InviteHeightFix = 70f;
         private const float JoinRequestHeightFix = 50f;
         private const float AcceptedJoinHeightFix = 75f;
         private static string ChatInput = "";
@@ -47,6 +48,7 @@ namespace AirlockFriends.UI
             public string FriendCode;
             public string RoomID;
             public float TimeCreated;
+            public bool Accepted = false;
         }
 
         private class JoinRequestData
@@ -56,6 +58,13 @@ namespace AirlockFriends.UI
         }
 
         public class AcceptedJoinRequestData
+        {
+            public string FriendCode;
+            public float TimeAccepted;
+            public string RoomID;
+        }
+
+        public class AcceptedInviteRequestData
         {
             public string FriendCode;
             public float TimeAccepted;
@@ -123,13 +132,17 @@ namespace AirlockFriends.UI
         }
 
 
-        public static void ReceiveInvite(string friendCode, string roomID)
+        public static void ReceiveInvite(string friendCode, string roomID, bool accepted = false)
         {
+            if (ActiveInvites.Any(request => request.FriendCode == friendCode))
+                return;
+
             ActiveInvites.Add(new InviteData
             {
                 FriendCode = friendCode,
                 RoomID = roomID,
-                TimeCreated = Time.time
+                TimeCreated = Time.time,
+                Accepted = accepted
             });
         }
 
@@ -171,6 +184,8 @@ namespace AirlockFriends.UI
             DrawInvites();
             DrawJoinRequests();
             DrawAcceptedJoinRequests();
+            DrawAcceptedInviteRequests();
+
         }
 
         public static void UpdateFriend(string name, string online, string friendCode, string roomID)
@@ -411,8 +426,25 @@ namespace AirlockFriends.UI
                 if (GUI.Button(new Rect(280 + 2 * (70 + 10), y + 12, 70, 30), "Request Join"))
                     _ = AirlockFriendsOperations.RPC_RequestJoin(FriendData.FriendCode);
 
-                if (GUI.Button(new Rect(280 + 3 * (70 + 10), y + 12, 70, 30), "Update"))
-                    _ = AirlockFriendsOperations.RPC_NotifyFriendGroup();
+                if (GUI.Button(new Rect(280 + 3 * (70 + 10), y + 12, 70, 30), "Invite"))
+                {
+                    if (Settings.InGame)
+                    {
+                        try
+                        {
+                            var Network = UnityEngine.Object.FindObjectOfType<AirlockNetworkRunner>();
+                            var MyRoomID = Network.SessionInfo.Name;
+                            _ = AirlockFriendsOperations.RPC_SendInvite(FriendData.FriendCode, MyRoomID);
+                        }
+                        catch (Exception ex)
+                        {
+                            NotificationLib.QueueNotification("[<color=red>FAIL</color>] Invite failed to send! Please report this.\nCheck console for more info");
+                            MelonLogger.Error($"Invite failed to send! Please report this: {ex}");
+                        }
+                    }
+                    else
+                        NotificationLib.QueueNotification("[<color=red>FAIL</color>] You must be in a room to send invites!");
+                }
 
                 GUI.color = SavedColor;
                 y += 60;
@@ -563,26 +595,26 @@ namespace AirlockFriends.UI
             {
                 var invite = ActiveInvites[i];
 
-                Rect InvRect = new Rect(
-                    WindowDesign.x,
-                    WindowDesign.yMax + (i * (InviteHeightFix + 6f)),
-                    300,
-                    InviteHeightFix
-                );
-
                 GUI.color = new Color(0, 0, 0, 0.65f);
-                GUI.Box(InvRect, "");
+                GUI.Box(new Rect(WindowDesign.x, WindowDesign.yMax + (i * (JoinRequestHeightFix)), 300, JoinRequestHeightFix), "");
                 GUI.color = Color.white;
 
-                GUILayout.BeginArea(InvRect);
+                GUILayout.BeginArea(new Rect(WindowDesign.x, WindowDesign.yMax + (i * (JoinRequestHeightFix + 6f)), 300, JoinRequestHeightFix));
                 GUILayout.Label($"{invite.FriendCode} invited you!");
-                GUILayout.Label($"Room ID: {invite.RoomID}");
-
                 GUILayout.BeginHorizontal();
 
                 GUI.backgroundColor = Color.green;
                 if (GUILayout.Button("Accept"))
                 {
+                    _ = AirlockFriendsOperations.RPC_RespondToInvite(invite.FriendCode, true);
+
+                    AcceptedInviteRequests.Add(new AcceptedInviteRequestData
+                    {
+                        FriendCode = invite.FriendCode,
+                        TimeAccepted = Time.time,
+                        RoomID = invite.RoomID
+                    });
+
                     ActiveInvites.RemoveAt(i);
                     i--;
                     GUILayout.EndHorizontal();
@@ -593,6 +625,7 @@ namespace AirlockFriends.UI
                 GUI.backgroundColor = Color.red;
                 if (GUILayout.Button("Ignore"))
                 {
+                    _ = AirlockFriendsOperations.RPC_RespondToInvite(invite.FriendCode, false);
                     ActiveInvites.RemoveAt(i);
                     i--;
                     GUILayout.EndHorizontal();
@@ -618,11 +651,7 @@ namespace AirlockFriends.UI
             {
                 var req = JoinRequests[i];
 
-                Rect Background = new Rect(
-                    WindowDesign.x,
-                    WindowDesign.yMax + (ActiveInvites.Count * (InviteHeightFix + 6f)) + (i * JoinRequestHeightFix),
-                    300,
-                    50
+                Rect Background = new Rect(WindowDesign.x, WindowDesign.yMax + (ActiveInvites.Count * (JoinRequestHeightFix + 6f)) + (i * JoinRequestHeightFix), 300, 50
                 );
 
                 if (!Settings.InGame)
@@ -683,7 +712,7 @@ namespace AirlockFriends.UI
             {
                 var req = AcceptedJoinRequests[i];
 
-                Rect Background = new Rect(WindowDesign.x, WindowDesign.yMax + (ActiveInvites.Count * (InviteHeightFix + 6f)) + (JoinRequests.Count * (JoinRequestHeightFix + 6f)) + (i * AcceptedJoinHeightFix), 300, 75 );
+                Rect Background = new Rect(WindowDesign.x, WindowDesign.yMax + (ActiveInvites.Count * (JoinRequestHeightFix + 6f)) + (JoinRequests.Count * (JoinRequestHeightFix + 6f)) + (i * AcceptedJoinHeightFix), 300, 75 );
 
                 GUI.color = new Color(0, 0, 0, 0.65f);
                 GUI.Box(Background, "");
@@ -709,10 +738,61 @@ namespace AirlockFriends.UI
                 if (GUILayout.Button("Copy Code"))
                 {
                     GUIUtility.systemCopyBuffer = req.RoomID;
-                    NotificationLib.QueueNotification(
-                        $"[<color=lime>SUCCESS</color>] Copied room ID <color=lime>{req.RoomID}</color> to your clipboard!"
-                    );
+                    NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Copied room ID <color=lime>{req.RoomID}</color> to your clipboard!");
                     AcceptedJoinRequests.RemoveAt(i);
+                    i--;
+                    GUILayout.EndHorizontal();
+                    GUILayout.EndArea();
+                    continue;
+                }
+
+                GUILayout.EndHorizontal();
+                GUI.backgroundColor = Color.white;
+                GUILayout.EndArea();
+            }
+        }
+
+        private static void DrawAcceptedInviteRequests()
+        {
+            for (int i = AcceptedInviteRequests.Count - 1; i >= 0; i--)
+            {
+                if (Time.time - AcceptedInviteRequests[i].TimeAccepted > 30f)
+                    AcceptedInviteRequests.RemoveAt(i);
+            }
+
+
+            for (int i = 0; i < AcceptedInviteRequests.Count; i++)
+            {
+                var req = AcceptedInviteRequests[i];
+
+                Rect Background = new Rect(WindowDesign.x, WindowDesign.yMax + (ActiveInvites.Count * (JoinRequestHeightFix + 6f)) + (JoinRequests.Count * (JoinRequestHeightFix + 6f)) + (i * AcceptedJoinHeightFix), 300, 75);
+
+                GUI.color = new Color(0, 0, 0, 0.65f);
+                GUI.Box(Background, "");
+                GUI.color = Color.white;
+
+                GUILayout.BeginArea(Background);
+                GUILayout.Label($"You accepted {GetFriend(req.FriendCode).Name}'s invite");
+                GUILayout.Label($"{GetFriend(req.FriendCode).Name} is in room: {req.RoomID}");
+
+                GUILayout.BeginHorizontal();
+
+                GUI.backgroundColor = Color.green;
+                if (GUILayout.Button("Okay"))
+                {
+                    AcceptedInviteRequests.RemoveAt(i);
+                    i--;
+                    GUILayout.EndHorizontal();
+                    GUILayout.EndArea();
+                    continue;
+                }
+
+                GUI.backgroundColor = Color.blue;
+                if (GUILayout.Button("Copy Code"))
+                {
+                    GUIUtility.systemCopyBuffer = req.RoomID;
+                    NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Copied room ID <color=lime>{req.RoomID}</color> to your clipboard!");
+                    AcceptedInviteRequests.RemoveAt(i);
                     i--;
                     GUILayout.EndHorizontal();
                     GUILayout.EndArea();
