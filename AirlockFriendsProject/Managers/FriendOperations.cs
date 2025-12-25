@@ -32,8 +32,7 @@ namespace AirlockFriends.Managers
     {
         protected static string PrivateKey { get; private set; }
         public static string FriendCode { get; private set; }
-        private static string MyName = FriendCode;
-
+        public static string MyName { get; private set; } = FriendCode;
         public static bool AllowFriendRequests = true;
         public static string JoinPrivacy = "Joinable";
         public static bool AllowMessages = true;
@@ -190,7 +189,13 @@ namespace AirlockFriends.Managers
                                         AllowInvites = AllowInvite.GetBoolean();
 
                                     if (data.TryGetProperty("Name", out var Name))
+                                    {
                                         MyName = Name.GetString();
+                                        if (MyName == FriendCode)
+                                        {
+                                            FriendGUI.NewName = true;
+                                        }
+                                    }
 
                                     if (Main.AFBanned)
                                     {
@@ -227,7 +232,8 @@ namespace AirlockFriends.Managers
                             if (data.TryGetProperty("EventIntercepted", out var interception))
                             {
                                 string message = data.TryGetProperty("error", out var error) ? error.GetString() : "PostAuthKeyViolation";
-                                MelonLogger.Error($"[AirlockFriends] AUTH FAILED (if you are a new user to Airlock Friends, this can be ignored and will be resolved by itself): {message}");
+                                MelonLogger.Error($"[AirlockFriends] Connection intercepted: A request you made failed authentication and your connection was intercepted,\nThis could be caused when you use Airlock Friends for the first time or you attempted to bypass one or more restrictions, in these cases, you should not reattempt,\nSERVER: {message}.");
+                                NotificationLib.QueueNotification($"[<color=red>Unauthorized</color>] Connection intercepted by server");
                                 await Disconnect(true);
                                 MelonCoroutines.Start(AttemptReconnection(true));
                                 continue;
@@ -338,25 +344,6 @@ namespace AirlockFriends.Managers
                                             NotificationLib.QueueNotification($"[<color=magenta>SENT</color>] Sent message to <color=lime>{GetFriend(target).Name}</color>!");
                                         }
                                         break;
-
-                                    case "friendStatusUpdate":
-                                        {
-                                            string FriendCode = data.GetProperty("friendCode").GetString();
-                                            string status = data.GetProperty("status").GetString();
-
-                                            string FriendName = data.TryGetProperty("name", out var n) ? n.GetString() : "";
-                                            string room = data.TryGetProperty("roomID", out var r) ? r.GetString() : "";
-                                            string privacyMode = data.GetProperty("privacy").GetString();
-                                            UpdateFriend(FriendName, status, FriendCode, room);
-
-
-
-                                            MelonLogger.Msg($"[STATUS DEBUG] {FriendCode}: {status}, {FriendName}, Room {room}, privacy={privacyMode}");
-
-                                            UpdateFriend(FriendName, status, FriendCode, room);
-                                            break;
-                                        }
-
 
 
 
@@ -695,17 +682,21 @@ namespace AirlockFriends.Managers
 
 
 
-        public static async Task RPC_NotifyFriendGroup(string name = "", bool updateSelf = true, string ModName = "")
+        public static async Task RPC_NotifyFriendGroup(string name = "", bool updateSelf = true, string ModName = "", string customName = "")
         {
             if (!IsConnected)
                 return;
 
-            if (updateSelf)
+            if (!string.IsNullOrEmpty(customName))
             {
-                if (!string.IsNullOrEmpty(name) && AirlockFriendsOperations.IsUnwantedName(name))
+                MyName = customName;
+            }
+            else if (updateSelf)
+            {
+                if (!string.IsNullOrEmpty(name) && AirlockFriendsOperations.IsUnwantedName(name) && MyName == FriendCode)
                     name = ModName;
 
-                if (string.IsNullOrEmpty(name))
+                if (string.IsNullOrEmpty(name) && MyName == FriendCode)
                 {
                     var rig = UnityEngine.Object.FindObjectOfType<XRRig>();
                     if (rig != null && !rig.PState.NetworkName.Value.Contains("#") && !rig.PState.IsSpectating)
@@ -713,7 +704,7 @@ namespace AirlockFriends.Managers
                     else
                         MyName = "";
                 }
-                else
+                else if (MyName == FriendCode)
                 {
                     MyName = name;
                 }

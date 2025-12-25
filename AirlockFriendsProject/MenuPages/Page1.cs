@@ -25,7 +25,6 @@ namespace AirlockFriends.UI
         private static readonly List<JoinRequestData> JoinRequests = new();
         public static readonly List<AcceptedJoinRequestData> AcceptedJoinRequests = new();
         public static readonly List<AcceptedInviteRequestData> AcceptedInviteRequests = new();
-
         private static readonly string[] JoinSettings = new string[] { "Joinable", "Ask Me", "Private" };
         private static int JoinIndex = 0;
         public static bool NewFriendRequest = false;
@@ -36,10 +35,12 @@ namespace AirlockFriends.UI
         private static bool _allowFriendRequests = AirlockFriendsOperations.AllowFriendRequests;
         private static bool _allowMessages = AirlockFriendsOperations.AllowMessages;
         private static bool _allowInvites = AirlockFriendsOperations.AllowInvites;
+        public static bool NewName;
         private const float JoinRequestHeightFix = 50f;
         private const float AcceptedJoinHeightFix = 75f;
         private static string ChatInput = "";
         private static string AddFriendInput = "";
+        private static string NewNameInput = "";
         public static FriendInfo GetFriend(string code) => friends.FirstOrDefault(SearchFriend => SearchFriend.FriendCode == code);
         private static FriendInfo CurrentChatOpen = null;
 
@@ -48,7 +49,6 @@ namespace AirlockFriends.UI
             public string FriendCode;
             public string RoomID;
             public float TimeCreated;
-            public bool Accepted = false;
         }
 
         private class JoinRequestData
@@ -132,7 +132,7 @@ namespace AirlockFriends.UI
         }
 
 
-        public static void ReceiveInvite(string friendCode, string roomID, bool accepted = false)
+        public static void ReceiveInvite(string friendCode, string roomID)
         {
             if (ActiveInvites.Any(request => request.FriendCode == friendCode))
                 return;
@@ -141,8 +141,7 @@ namespace AirlockFriends.UI
             {
                 FriendCode = friendCode,
                 RoomID = roomID,
-                TimeCreated = Time.time,
-                Accepted = accepted
+                TimeCreated = Time.time
             });
         }
 
@@ -183,8 +182,10 @@ namespace AirlockFriends.UI
             WindowDesign = GUI.Window(1653, WindowDesign, (GUI.WindowFunction)DrawWindow, "");
             DrawInvites();
             DrawJoinRequests();
-            DrawAcceptedJoinRequests();
-            DrawAcceptedInviteRequests();
+            if (AcceptedJoinRequests.Count > 0)
+                DrawAcceptedJoinRequests();
+            if (AcceptedInviteRequests.Count > 0)
+                DrawAcceptedInviteRequests();
 
         }
 
@@ -226,11 +227,7 @@ namespace AirlockFriends.UI
                     normal = { textColor = Color.red }
                 };
 
-                GUI.Label(
-                    new Rect(0, 60, WindowDesign.width, 40),
-                    "<b>Your Airlock Friends account is blacklisted</b>",
-                    BanTitleDesign
-                );
+                GUI.Label(new Rect(0, 60, WindowDesign.width, 40), "<b>Your Airlock Friends account is blacklisted</b>", BanTitleDesign);
 
                 GUIStyle BanDesign = new GUIStyle(GUI.skin.label)
                 {
@@ -240,13 +237,7 @@ namespace AirlockFriends.UI
                     normal = { textColor = Color.white }
                 };
 
-                GUI.Label(
-                    new Rect(20, 110, WindowDesign.width - 40, 200),
-                    "This ban will <b>Never</b> expire\n\n" +
-                    "If you believe this is a mistake, you can join the discord and appeal.\n\n" +
-                    "You can no longer use Airlock Friends.",
-                    BanDesign
-                );
+                GUI.Label(new Rect(20, 110, WindowDesign.width - 40, 200), "This ban will <b>Never</b> expire\n\n" + "If you believe this is a mistake, you can join the discord and appeal.\n\n" + "You can no longer use Airlock Friends.", BanDesign);
 
                 var savedColor = GUI.color;
                 GUI.color = Color.green;
@@ -255,10 +246,80 @@ namespace AirlockFriends.UI
 
                 GUI.color = savedColor;
 
-
                 GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
                 return;
             }
+
+
+
+            if (NewName)
+            {
+                Color OldColor = GUI.color;
+                GUI.color = new Color(0f, 0f, 0f, 0.95f);
+                GUI.Box(new Rect(0, 0, WindowDesign.width, WindowDesign.height), "");
+                GUI.color = OldColor;
+
+                Rect NamePopup = new Rect((WindowDesign.width - 500) / 2, (WindowDesign.height - 260) / 2, 500, 260);
+
+                GUI.color = new Color(0.2f, 0.2f, 0.2f, 0.98f);
+                GUI.Box(NamePopup, "");
+                GUI.color = OldColor;
+
+                GUI.Label(new Rect(NamePopup.x + 10, NamePopup.y + 10, 480, 30), "Pick a Display Name", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 22, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } });
+                GUI.Label(new Rect(NamePopup.x + 20, NamePopup.y + 50, 460, 50), "Your friends will see you as this name", new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter, wordWrap = true, normal = { textColor = Color.white } });
+
+                string NonSanitizedName = GUI.TextField(new Rect(NamePopup.x + 20, NamePopup.y + 115, 460, 35), NewNameInput);
+
+                System.Text.StringBuilder SanitizedName = new System.Text.StringBuilder();
+                for (int i = 0; i < NonSanitizedName.Length; i++)
+                    if (char.IsLetterOrDigit(NonSanitizedName[i]))
+                        SanitizedName.Append(NonSanitizedName[i]);
+
+                NewNameInput = SanitizedName.ToString();
+
+                if (NewNameInput.Length > 10)
+                    NewNameInput = NewNameInput.Substring(0, 10);
+
+                string[] BlockedNames = { "fag", "nig", "bitch", "jolyne", "slut", "ni6er", "ni66", "ni6a"};
+
+                bool BlockedText = false;
+                for (int i = 0; i < BlockedNames.Length; i++)
+                    if (!string.IsNullOrEmpty(NewNameInput) && NewNameInput.IndexOf(BlockedNames[i], StringComparison.OrdinalIgnoreCase) >= 0)
+                        BlockedText = true;
+
+                bool EmptyName = string.IsNullOrEmpty(NewNameInput);
+                bool tooShort = !EmptyName && NewNameInput.Length < 3;
+                bool GoodName = !EmptyName && !tooShort && !BlockedText;
+
+                GUI.Label(new Rect(NamePopup.x + 20, NamePopup.y + 155, 460, 30), EmptyName ? "Choose something people will recognize you by" : GoodName ? "Looks good!" : BlockedText ? "That name contains blacklisted words." : "Minimum 3 characters.", new GUIStyle(GUI.skin.label) { fontSize = 13, alignment = TextAnchor.MiddleCenter, normal = { textColor = EmptyName ? Color.white : GoodName ? Color.green : BlockedText ? Color.red : Color.white } });
+
+                GUI.color = GoodName ? new Color(0.3f, 1f, 0.3f, 1f) : new Color(0.6f, 1f, 0.6f, 0.5f);
+
+                if (GUI.Button(new Rect(NamePopup.x + 140, NamePopup.y + 190, 220, 35), "Save Name") && GoodName)
+                {
+                    _ = AirlockFriendsOperations.RPC_NotifyFriendGroup(customName: NewNameInput);
+                    NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Display name updated to <b>{NewNameInput}</b>!");
+                    NewNameInput = "";
+                    NewName = false;
+                }
+
+                GUI.color = Color.gray;
+                if (!string.IsNullOrEmpty(AirlockFriendsOperations.MyName) && AirlockFriendsOperations.MyName != AirlockFriendsOperations.FriendCode)
+                {
+                    if (GUI.Button(new Rect(NamePopup.x + 190, NamePopup.y + 235, 120, 28), "Cancel"))
+                    {
+                        NewNameInput = "";
+                        NewName = false;
+                    }
+                }
+
+
+                GUI.color = OldColor;
+                GUI.DragWindow(new Rect(0, 0, WindowDesign.width, 30));
+                return;
+            }
+
+
 
 
             if (OnSettingsPage)
@@ -423,7 +484,7 @@ namespace AirlockFriends.UI
                 }
 
                 GUI.color = Color.cyan;
-                if (GUI.Button(new Rect(280 + 2 * (70 + 10), y + 12, 70, 30), "Request Join"))
+                if (GUI.Button(new Rect(280 + 2 * (70 + 10), y + 12, 70, 30), "Join Req"))
                     _ = AirlockFriendsOperations.RPC_RequestJoin(FriendData.FriendCode);
 
                 if (GUI.Button(new Rect(280 + 3 * (70 + 10), y + 12, 70, 30), "Invite"))
@@ -433,7 +494,7 @@ namespace AirlockFriends.UI
                         try
                         {
                             var Network = UnityEngine.Object.FindObjectOfType<AirlockNetworkRunner>();
-                            var MyRoomID = Network.SessionInfo.Name;
+                            string MyRoomID = Network.SessionInfo.Name;
                             _ = AirlockFriendsOperations.RPC_SendInvite(FriendData.FriendCode, MyRoomID);
                         }
                         catch (Exception ex)
@@ -864,6 +925,19 @@ namespace AirlockFriends.UI
             _allowFriendRequests = GUI.Toggle(new Rect(Panel.x + 25, Panel.y + 25 + 160, 300, 30), _allowFriendRequests, "Allow Friend Requests");
             _allowMessages = GUI.Toggle(new Rect(Panel.x + 25, Panel.y + 25 + 194, 300, 30), _allowMessages, "Allow Messages");
             _allowInvites = GUI.Toggle(new Rect(Panel.x + 25, Panel.y + 25 + 228, 300, 30), _allowInvites, "Allow Invites");
+
+
+            GUI.backgroundColor = new Color(0.35f, 0.35f, 0.35f);
+
+            if (GUI.Button(new Rect(Panel.x + 25, Panel.y + 25 + 260, 150, 28), "Change Name"))
+            {
+                NewName = true;
+            }
+
+
+            GUI.backgroundColor = Color.white;
+
+
 
             GUI.backgroundColor = new Color(0.2f, 0.6f, 1f);
             GUI.contentColor = Color.white;
