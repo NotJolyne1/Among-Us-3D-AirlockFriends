@@ -52,9 +52,6 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\MelonLoader\Dependencies\Il2CppAssemblyGenerator\Cpp2IL\cpp2il_out\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="System.Speech">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\UserLibs\System.Speech.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.InputSystem">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Among Us 3D\MelonLoader\Il2CppAssemblies\Unity.InputSystem.dll</HintPath>
     </Reference>

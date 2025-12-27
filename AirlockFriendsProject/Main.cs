@@ -29,8 +29,6 @@ namespace AirlockFriends
         private bool cached = false;
         public static CSteamID cachedId;
         public static bool AFBanned = false;
-        public static bool AppealButtonClicked = false;
-        public static bool HasShownBanMessage = false;
         public static bool HasShownBanNoti = false;
         private static bool NotifyingFriends = false;
         public override void OnApplicationQuit()
@@ -59,15 +57,6 @@ namespace AirlockFriends
                     NotifyingFriends = true;
 					MelonCoroutines.Start(AirlockFriendsAuth.NotifyFriendGroup());
                 }
-                if (AFBanned && !HasShownBanMessage)
-                {
-                    try
-                    {
-                        UnityEngine.Object.FindObjectOfType<MenuManager>().ShowPopup("<color=red>You are currently blacklisted from using Airlock Friends.</color>\n\nThis ban will <b>Never</b> expire.\n\nClick appeal to join the Discord and request a unban.", "APPEAL", "CLOSE");
-                        HasShownBanMessage = true;
-                    }
-                    catch { }
-                }
             }
             catch (Exception ex) 
             {
@@ -78,23 +67,21 @@ namespace AirlockFriends
 
         public override void OnUpdate()
         {
-
-            NotificationLib.Update();
-
-            if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
-                Settings.GUIEnabled = !Settings.GUIEnabled;
-
-
-            if (!InGame)
+            try
             {
-                GameRefsFound = false;
-                return;
-            }
+                NotificationLib.Update();
 
-            if (InGame && !GameRefsFound)
-            {
-                refreshGameRefs();
+                if (Keyboard.current.f1Key.wasPressedThisFrame || Keyboard.current.slashKey.wasPressedThisFrame)
+                    GUIEnabled = !GUIEnabled;
+
+                if (!InGame)
+                    GameRefsFound = false;
+
+                if (InGame && !GameRefsFound)
+                    refreshGameRefs();
+
             }
+            catch { }
         }
 
 

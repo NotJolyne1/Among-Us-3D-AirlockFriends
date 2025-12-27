@@ -129,8 +129,8 @@ namespace AirlockFriends.Managers
                     steamID = Helpers.GetSelfSteamID(),
                 };
 
-                string json = System.Text.Json.JsonSerializer.Serialize(authPayload);
-                await RaiseEvent(json);
+                string EventData = System.Text.Json.JsonSerializer.Serialize(authPayload);
+                await RaiseEvent(EventData);
                 MelonLogger.Msg("[AirlockFriends] Sent authentication request to server.");
             }
         }
@@ -200,7 +200,6 @@ namespace AirlockFriends.Managers
                                     if (Main.AFBanned)
                                     {
                                         Main.AFBanned = false;
-                                        Main.HasShownBanMessage = false;
                                         Main.HasShownBanNoti = false;
                                         NotificationLib.QueueNotification("[<color=lime>UNBANNED</color>] You've been unbanned from Airlock Friends!");
                                     }
@@ -534,8 +533,8 @@ namespace AirlockFriends.Managers
                 toFriendCode = targetFriendCode
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(request);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
+            await RaiseEvent(EventData);
             MelonCoroutines.Start(GetUsername(targetFriendCode, name => MelonLogger.Msg($"[AirlockFriends] Sent friend request to {name}")));
         }
 
@@ -563,8 +562,8 @@ namespace AirlockFriends.Managers
                 message = message
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(EventData);
             MelonLogger.Msg($"[AirlockFriends] Sent message to {targetFriendCode}: {message}");
         }
 
@@ -582,8 +581,8 @@ namespace AirlockFriends.Managers
                 acceptFriendCode = AcceptingFriend
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(request);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
+            await RaiseEvent(EventData);
             MelonLogger.Msg($"[AirlockFriends] Accepted friend request from {AcceptingFriend}");
         }
 
@@ -599,8 +598,8 @@ namespace AirlockFriends.Managers
                 rejectFriendCode = incomingFriendCode
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(EventData);
 
             MelonLogger.Msg($"[AirlockFriends] Rejected friend request from {incomingFriendCode}");
         }
@@ -618,8 +617,8 @@ namespace AirlockFriends.Managers
             };
 
 
-            string json = System.Text.Json.JsonSerializer.Serialize(request);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
+            await RaiseEvent(EventData);
             MelonLogger.Msg($"[AirlockFriends] Removed friend {RemovingFriend}");
             MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(RemovingFriend, name => NotificationLib.QueueNotification($"[<color=red>UNFRIEND</color>] Unfriended {name}")));
         }
@@ -668,8 +667,8 @@ namespace AirlockFriends.Managers
 
             try
             {
-                string json = System.Text.Json.JsonSerializer.Serialize(payload);
-                await RaiseEvent(json);
+                string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+                await RaiseEvent(EventData);
                 MelonLogger.Msg($"[AirlockFriends debug] Sent updated settings to server: FriendRequests {AllowFriendRequests}, JoinPrivacy {JoinPrivacy}, Messages {AllowMessages}, Invites {AllowInvites}");
             }
             catch (Exception ex)
@@ -717,8 +716,8 @@ namespace AirlockFriends.Managers
                 currentName = MyName
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(EventData);
         }
 
 
@@ -736,8 +735,8 @@ namespace AirlockFriends.Managers
                 targetFriendCode = targetFriendCode
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(EventData);
             MelonLogger.Msg($"[AirlockFriends] Sent join request to {targetFriendCode}");
         }
 
@@ -753,8 +752,8 @@ namespace AirlockFriends.Managers
                 roomID = roomID
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(EventData);
             MelonLogger.Msg($"[AirlockFriends] Sent join request to {targetFriendCode}");
         }
 
@@ -771,8 +770,8 @@ namespace AirlockFriends.Managers
                 accepted = accepted
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(EventData);
         }
 
         public static async Task RPC_RespondToJoin(string senderFriendCode, bool accepted, bool InGame = true)
@@ -806,8 +805,8 @@ namespace AirlockFriends.Managers
                 PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
             };
 
-            string json = System.Text.Json.JsonSerializer.Serialize(payload, options);
-            await RaiseEvent(json);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(payload, options);
+            await RaiseEvent(EventData);
 
             MelonLogger.Msg($"[AirlockFriends] Responded to join request from {senderFriendCode}: {(accepted ? $"accepted (room {roomCode})" : "rejected")}");
         }
@@ -824,8 +823,8 @@ namespace AirlockFriends.Managers
                     friendCode = friendCode
                 };
 
-                string json = System.Text.Json.JsonSerializer.Serialize(request);
-                await RaiseEvent(json);
+                string EventData = System.Text.Json.JsonSerializer.Serialize(request);
+                await RaiseEvent(EventData);
             }
         }
 
