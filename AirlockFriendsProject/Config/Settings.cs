@@ -12,7 +12,7 @@ namespace AirlockFriends.Config
         public static bool GUIEnabled = true;
         public static Color GUIColor = Color.blue;
         public static int GUIColorInt = 0;
-        public static float RainbowColor = 0f;
+        public static float RainbowColor = 0f; 
 
         public static bool IsVR = false;
         public static bool InGame = false;

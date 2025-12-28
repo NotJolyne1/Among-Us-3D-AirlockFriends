@@ -89,9 +89,13 @@ namespace AirlockFriends
 
         public override void OnGUI()
         {
-            GUI.color = Settings.GUIColor;
+            var OriginalColor = GUI.color;
+            GUI.color = GUIColor;
             if (!GUIEnabled || !passed)
+            {
+                GUI.color = OriginalColor;
                 return;
+            }
 
             try
             {
@@ -102,10 +106,12 @@ namespace AirlockFriends
                     HasShownBanNoti = true;
                     NotificationLib.QueueNotification("[<color=red>BANNED</color>] You have been blacklisted from AirlockFriends\nThis ban will <b>Never</b> expire.", true);
                 }
+                GUI.color = OriginalColor;
             }
             catch (System.Exception e)
             {
                 MelonLogger.Warning($"[FAIL] Something went wrong! Failed at ModManager.Update(), error: {e}");
+                GUI.color = OriginalColor;
             }
         }
     }
