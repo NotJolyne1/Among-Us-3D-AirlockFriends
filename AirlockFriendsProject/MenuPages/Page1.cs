@@ -515,12 +515,12 @@ namespace AirlockFriends.UI
                         }
                         catch (Exception ex)
                         {
-                            NotificationLib.QueueNotification("[<color=red>FAIL</color>] Invite failed to send! Please report this.\nCheck console for more info");
+                            NotificationLib.QueueNotification("[<color=red>ERROR</color>] Invite failed to send! Please report this.\nCheck console for more info");
                             MelonLogger.Error($"Invite failed to send! Please report this: {ex}");
                         }
                     }
                     else
-                        NotificationLib.QueueNotification("[<color=red>FAIL</color>] You must be in a room to send invites!");
+                        NotificationLib.QueueNotification("[<color=red>ERROR</color>] You must be in a room to send invites!");
                 }
 
                 GUI.color = SavedColor;
@@ -654,7 +654,7 @@ namespace AirlockFriends.UI
                 {
                     if (ChatInput.Length > 500)
                     {
-                        NotificationLib.QueueNotification("[<color=red>FAIL</color>] Message too long");
+                        NotificationLib.QueueNotification("[<color=red>ERROR</color>] Message too long");
                         ReceiveDirectMessage(FriendInfo.FriendCode, "System", "Message too long", true, true);
                         ChatInput = "";
                         return;
@@ -683,8 +683,10 @@ namespace AirlockFriends.UI
                 GUI.Box(new Rect(WindowDesign.x, WindowDesign.yMax + (i * (JoinRequestHeightFix)), 300, JoinRequestHeightFix), "");
                 GUI.color = Color.white;
 
+                string inviter = string.Empty;
                 GUILayout.BeginArea(new Rect(WindowDesign.x, WindowDesign.yMax + (i * (JoinRequestHeightFix + 6f)), 300, JoinRequestHeightFix));
-                GUILayout.Label($"{invite.FriendCode} invited you!");
+                MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(invite.FriendCode, name => inviter = name));
+                GUILayout.Label($"{inviter} invited you!");
                 GUILayout.BeginHorizontal();
 
                 GUI.backgroundColor = Color.green;
@@ -783,20 +785,23 @@ namespace AirlockFriends.UI
             }
         }
 
+
+
         private static void DrawAcceptedJoinRequests()
         {
             for (int i = AcceptedJoinRequests.Count - 1; i >= 0; i--)
             {
                 if (Time.time - AcceptedJoinRequests[i].TimeAccepted > 30f)
                     AcceptedJoinRequests.RemoveAt(i);
-            }                
+            }
 
+            float baseY = WindowDesign.yMax + (ActiveInvites.Count * (JoinRequestHeightFix + 6f)) + (JoinRequests.Count * (JoinRequestHeightFix + 6f));
 
             for (int i = 0; i < AcceptedJoinRequests.Count; i++)
             {
                 var req = AcceptedJoinRequests[i];
 
-                Rect Background = new Rect(WindowDesign.x, WindowDesign.yMax + (ActiveInvites.Count * (JoinRequestHeightFix + 6f)) + (JoinRequests.Count * (JoinRequestHeightFix + 6f)) + (i * AcceptedJoinHeightFix), 300, 75 );
+                Rect Background = new Rect(WindowDesign.x, baseY + (i * AcceptedJoinHeightFix), 300, 75);
 
                 GUI.color = new Color(0, 0, 0, 0.65f);
                 GUI.Box(Background, "");
@@ -844,12 +849,15 @@ namespace AirlockFriends.UI
                     AcceptedInviteRequests.RemoveAt(i);
             }
 
+            float baseY = WindowDesign.yMax + (ActiveInvites.Count * (JoinRequestHeightFix + 6f))
+                                       + (JoinRequests.Count * (JoinRequestHeightFix + 6f))
+                                       + (AcceptedJoinRequests.Count * AcceptedJoinHeightFix);
 
             for (int i = 0; i < AcceptedInviteRequests.Count; i++)
             {
                 var req = AcceptedInviteRequests[i];
 
-                Rect Background = new Rect(WindowDesign.x, WindowDesign.yMax + (ActiveInvites.Count * (JoinRequestHeightFix + 6f)) + (JoinRequests.Count * (JoinRequestHeightFix + 6f)) + (i * AcceptedJoinHeightFix), 300, 75);
+                Rect Background = new Rect(WindowDesign.x, baseY + (i * AcceptedJoinHeightFix), 300, 75);
 
                 GUI.color = new Color(0, 0, 0, 0.65f);
                 GUI.Box(Background, "");
@@ -888,7 +896,6 @@ namespace AirlockFriends.UI
                 GUILayout.EndArea();
             }
         }
-
 
         private static void DrawSettingsPage()
         {

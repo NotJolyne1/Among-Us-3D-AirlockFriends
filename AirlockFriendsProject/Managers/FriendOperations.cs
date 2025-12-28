@@ -231,8 +231,8 @@ namespace AirlockFriends.Managers
                             if (data.TryGetProperty("EventIntercepted", out var interception))
                             {
                                 string message = data.TryGetProperty("error", out var error) ? error.GetString() : "PostAuthKeyViolation";
-                                MelonLogger.Error($"[AirlockFriends] Connection intercepted: A request you made failed authentication and your connection was intercepted,\nThis could be caused when you use Airlock Friends for the first time or you attempted to bypass one or more restrictions, in these cases, you should not reattempt,\nSERVER: {message}.");
-                                NotificationLib.QueueNotification($"[<color=red>Unauthorized</color>] Connection intercepted by server");
+                                MelonLogger.Error($"[AirlockFriends] Connection intercepted: A request you made failed authentication and your connection was closed,\nThis could be caused when you use Airlock Friends for the first time or you attempted to bypass one or more restrictions, in these cases, you should not reattempt,\nSERVER: {message}.");
+                                NotificationLib.QueueNotification($"[<color=red>Unauthorized</color>] Connection was forcibly closed by the server.");
                                 await Disconnect(true);
                                 MelonCoroutines.Start(AttemptReconnection(true));
                                 continue;
@@ -248,8 +248,8 @@ namespace AirlockFriends.Managers
                                     case "failed":
                                         string reason = data.TryGetProperty("reason", out var reasonProp) ? reasonProp.GetString() : "Unknown reason";
                                         string toFriend = data.TryGetProperty("toFriendCode", out var toProp) ? toProp.GetString() : "";
-                                        NotificationLib.QueueNotification($"[<color=red>FAILED</color>] {reason}");
-                                        if (!reason.Contains("already friends") && !reason.Contains("pending request")) ReceiveDirectMessage(toFriend, "System", $"Operation failed: {reason}", true, false);
+                                        NotificationLib.QueueNotification($"[<color=red>ERROR</color>] {reason}");
+                                        if (!reason.Contains("already friends") && !reason.Contains("pending request") && !reason.Contains("not accepting friend")) ReceiveDirectMessage(toFriend, "System", $"ERROR: {reason}", true, false);
                                         break;
 
                                     case "success":
@@ -526,6 +526,14 @@ namespace AirlockFriends.Managers
         public static async Task RPC_FriendshipRequest(string targetFriendCode)
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
+
+            if (FriendRequests.Contains(targetFriendCode))
+            {
+                await RPC_FriendAccept(targetFriendCode);
+                FriendRequests.Remove(targetFriendCode);
+                return;
+            }
+
             var request = new
             {
                 type = "friendRequest",
@@ -535,7 +543,10 @@ namespace AirlockFriends.Managers
 
             string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
-            MelonCoroutines.Start(GetUsername(targetFriendCode, name => MelonLogger.Msg($"[AirlockFriends] Sent friend request to {name}")));
+
+            MelonCoroutines.Start(GetUsername(targetFriendCode, name =>
+                MelonLogger.Msg($"[AirlockFriends] Sent friend request to {name}")
+            ));
         }
 
         public static void RPC_OnRequestReceived(string fromFriendCode)
@@ -584,8 +595,9 @@ namespace AirlockFriends.Managers
             string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
             MelonLogger.Msg($"[AirlockFriends] Accepted friend request from {AcceptingFriend}");
-        }
 
+            FriendRequests.Remove(AcceptingFriend);
+        }
         public static async Task RPC_FriendReject(string incomingFriendCode)
         {
             if (string.IsNullOrEmpty(incomingFriendCode) || string.IsNullOrEmpty(FriendCode))
@@ -724,9 +736,16 @@ namespace AirlockFriends.Managers
 
 
 
+        private static float JoinRequestTime = -999f;
         public static async Task RPC_RequestJoin(string targetFriendCode)
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
+            if (Time.realtimeSinceStartup - JoinRequestTime < 5f)
+                return;
+            JoinRequestTime = Time.realtimeSinceStartup;
+
+            string username = string.Empty;
+            MelonCoroutines.Start(GetUsername(targetFriendCode, name => username = name));
 
             var payload = new
             {
@@ -737,12 +756,20 @@ namespace AirlockFriends.Managers
 
             string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
             await RaiseEvent(EventData);
-            MelonLogger.Msg($"[AirlockFriends] Sent join request to {targetFriendCode}");
+            NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{username}</color>");
         }
 
+
+        private static float InviteTime = -999f;
         public static async Task RPC_SendInvite(string targetFriendCode, string roomID)
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
+            string username = string.Empty;
+            MelonCoroutines.Start(GetUsername(targetFriendCode, name => username = name));
+
+            if (Time.realtimeSinceStartup - InviteTime < 5f)
+                return;
+            InviteTime = Time.realtimeSinceStartup;
 
             var payload = new
             {
@@ -754,8 +781,9 @@ namespace AirlockFriends.Managers
 
             string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
             await RaiseEvent(EventData);
-            MelonLogger.Msg($"[AirlockFriends] Sent join request to {targetFriendCode}");
+            NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{username}</color>");
         }
+
 
 
         public static async Task RPC_RespondToInvite(string targetFriendCode, bool accepted)
