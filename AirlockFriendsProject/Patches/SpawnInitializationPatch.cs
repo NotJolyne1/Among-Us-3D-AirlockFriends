@@ -8,8 +8,8 @@ namespace AirlockFriends.Patches
     [HarmonyPatch(typeof(NetworkedLocomotionPlayer), nameof(NetworkedLocomotionPlayer.RPC_SpawnInitialization))]
     public class SpawnInitializationPatch
     {
-        [HarmonyPostfix]
-        public static void Postfix(ref string name, ref string moderationUsername)
+        [HarmonyPrefix]
+        public static void Prefix(ref string name, ref string moderationUsername)
         {
             try
             {

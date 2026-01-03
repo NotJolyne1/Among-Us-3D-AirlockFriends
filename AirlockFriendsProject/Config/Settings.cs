@@ -26,7 +26,7 @@ namespace AirlockFriends.Config
 		public static bool CodeRecievced = false;
         public static string CurrentRoom = "Not in a room";
 
-        public static float NotiDuration = 4f;
+        public static float NotiDuration = 4.3f;
         public static bool ShowNotifications = true;
     }
 }

@@ -5,6 +5,7 @@ using AirlockFriends.Managers;
 using Il2CppSG.Airlock.UI.TitleScreen;
 using Il2CppSteamworks;
 using MelonLoader;
+using ShadowsMenu.Managers;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.PlayerLoop;
@@ -104,7 +105,7 @@ namespace AirlockFriends
                 if (AFBanned && !HasShownBanNoti)
                 {
                     HasShownBanNoti = true;
-                    NotificationLib.QueueNotification("[<color=red>BANNED</color>] You have been blacklisted from AirlockFriends\nThis ban will <b>Never</b> expire.", true);
+                    NotificationLib.QueueNotification("[<color=red>DISABLED</color>] You have been blacklisted from AirlockFriends", true);
                 }
                 GUI.color = OriginalColor;
             }

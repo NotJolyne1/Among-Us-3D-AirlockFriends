@@ -5,10 +5,13 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using AirlockFriends.Config;
 using AirlockFriends.Managers;
+using Il2CppSG.Airlock;
 using Il2CppSG.Airlock.Network;
 using Il2CppSG.Airlock.XR;
 using MelonLoader;
+using ShadowsMenu.Managers;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using static Il2CppSG.Airlock.Holomap.Holomap3D;
 
 namespace AirlockFriends.UI
@@ -16,7 +19,6 @@ namespace AirlockFriends.UI
     public class FriendGUI
     {
         private static Rect WindowDesign = new Rect(300, 100, 700, 420);
-
         private static Vector2 Scroll;
         private static Vector2 ChatScroll;
         private static Dictionary<string, List<DirectMessage>> FriendConversations = new();
@@ -27,6 +29,7 @@ namespace AirlockFriends.UI
         public static readonly List<AcceptedJoinRequestData> AcceptedJoinRequests = new();
         public static readonly List<AcceptedInviteRequestData> AcceptedInviteRequests = new();
         private static readonly string[] JoinSettings = new string[] { "Joinable", "Ask Me", "Private" };
+        private static readonly string[] UserTagSetting = new string[] { "NoTag", "Everyone" };
         private static int JoinIndex = 0;
         public static bool NewFriendRequest = false;
         private static bool OnSettingsPage = false;
@@ -210,6 +213,7 @@ namespace AirlockFriends.UI
             {
                 friend = new FriendInfo(friendCode);
                 friends.Add(friend);
+                MelonLogger.Msg($"LOADED: {name}, ONLINE: {online}");
             }
 
             friend.Update(name, online, roomID);
@@ -501,7 +505,12 @@ namespace AirlockFriends.UI
 
                 GUI.color = Color.cyan;
                 if (GUI.Button(new Rect(280 + 2 * (70 + 10), y + 12, 70, 30), "Join Req"))
-                    _ = AirlockFriendsOperations.RPC_RequestJoin(FriendData.FriendCode);
+                {
+                    foreach (PlayerState player in GameReferences.Spawn.ActivePlayerStates)
+                        ModUserVisuals.TryAdd(player);
+                    //_ = AirlockFriendsOperations.RPC_RequestJoin(FriendData.FriendCode);
+
+                }
 
                 if (GUI.Button(new Rect(280 + 3 * (70 + 10), y + 12, 70, 30), "Invite"))
                 {
@@ -535,10 +544,11 @@ namespace AirlockFriends.UI
 
         private static void DrawRequestsPage()
         {
-            if (GUI.Button(new Rect(10, 50, 80, 30), "Back"))
+            GUI.backgroundColor = new Color(0.2f, 0.6f, 1f);
+            if (GUI.Button(new Rect(10, 10, 90, 40), "Back"))
                 FriendRequestsPage = false;
 
-            GUI.Label(new Rect(0, 50, WindowDesign.width, 30), "Friend Requests", new GUIStyle(GUI.skin.label)
+            GUI.Label(new Rect(0, 25, WindowDesign.width, 30), "Friend Requests", new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 20,
@@ -593,17 +603,21 @@ namespace AirlockFriends.UI
                     fontStyle = FontStyle.Bold
                 });
 
-            if (GUI.Button(new Rect(10, 10, 80, 30), "Back"))
+            GUI.backgroundColor = new Color(0.2f, 0.6f, 1f);
+            if (GUI.Button(new Rect(10, 10, 90, 40), "Back"))
             {
                 CurrentChatOpen = null;
                 return;
             }
 
-            var messages = FriendConversations.ContainsKey(FriendInfo.FriendCode) ? FriendConversations[FriendInfo.FriendCode] : new List<DirectMessage>();
+            var messages = FriendConversations.ContainsKey(FriendInfo.FriendCode)
+                ? new List<DirectMessage>(FriendConversations[FriendInfo.FriendCode])
+                : new List<DirectMessage>();
 
             Rect ChatDesign = new Rect(10, 50, WindowDesign.width - 20, WindowDesign.height - 120);
             float TotalHeight = 0f;
             GUIStyle HeightFix = new GUIStyle(GUI.skin.label) { richText = true };
+
             foreach (var msg in messages)
             {
                 HeightFix.normal.textColor = msg.TextColor;
@@ -615,9 +629,11 @@ namespace AirlockFriends.UI
 
             GUI.BeginGroup(ChatDesign);
 
-            bool isNearBottom = ChatScroll.y >= TotalHeight - ChatDesign.height - 50f;
-
-            ChatScroll = GUI.BeginScrollView(new Rect(0, 0, ChatDesign.width, ChatDesign.height), ChatScroll, ViewingDesign);
+            ChatScroll = GUI.BeginScrollView(
+                new Rect(0, 0, ChatDesign.width, ChatDesign.height),
+                ChatScroll,
+                ViewingDesign
+            );
 
             float y = 0f;
             foreach (var msg in messages)
@@ -627,11 +643,17 @@ namespace AirlockFriends.UI
 
                 GUI.Box(new Rect(0, y, ViewingDesign.width, height + 25), "");
 
-                GUI.Label(new Rect(10, y + 5, ViewingDesign.width - 20, 20),
+                GUI.Label(
+                    new Rect(10, y + 5, ViewingDesign.width - 20, 20),
                     msg.Sender,
-                    new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold });
+                    new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold }
+                );
 
-                GUI.Label(new Rect(10, y + 25, ViewingDesign.width - 20, height), msg.Text, HeightFix);
+                GUI.Label(
+                    new Rect(10, y + 25, ViewingDesign.width - 20, height),
+                    msg.Text,
+                    HeightFix
+                );
 
                 y += height + 30;
             }
@@ -645,10 +667,21 @@ namespace AirlockFriends.UI
                 ScrollToBottom = false;
             }
 
+            if (CurrentChatOpen != null && Event.current.type == EventType.KeyDown)
+            {
+                if (!Event.current.control && !Event.current.alt && !Event.current.command)
+                {
+                    GUI.FocusControl("ChatInputField");
+                }
+            }
 
-            ChatInput = GUI.TextField(new Rect(10, WindowDesign.height - 50, WindowDesign.width - 140, 40), ChatInput);
+            GUI.SetNextControlName("ChatInputField");
+            ChatInput = GUI.TextField(
+                new Rect(10, WindowDesign.height - 50, WindowDesign.width - 140, 40),
+                ChatInput
+            );
 
-            if (GUI.Button(new Rect(WindowDesign.width - 120, WindowDesign.height - 50, 110, 40), "Send"))
+            if (GUI.Button(new Rect(WindowDesign.width - 120, WindowDesign.height - 50, 110, 40), "Send") || Keyboard.current.enterKey.wasPressedThisFrame)
             {
                 if (!string.IsNullOrWhiteSpace(ChatInput))
                 {
@@ -666,6 +699,7 @@ namespace AirlockFriends.UI
                 }
             }
         }
+
 
         private static void DrawInvites()
         {

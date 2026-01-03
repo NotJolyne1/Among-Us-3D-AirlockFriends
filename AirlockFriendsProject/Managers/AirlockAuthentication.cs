@@ -4,6 +4,8 @@ using UnityEngine;
 using MelonLoader;
 using System.Collections;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace AirlockFriends.Managers
 {
@@ -22,26 +24,34 @@ namespace AirlockFriends.Managers
             {
                 if (File.Exists(FilePath))
                 {
-                    string key = File.ReadAllText(FilePath);
-                    key = key.Replace("\n", "").Replace("\r", "").Trim();
-
+                    var key = File.ReadAllText(FilePath).Trim();
                     if (!string.IsNullOrEmpty(key))
                     {
-                        MelonLogger.Msg($"[AirlockFriends] [DEBUG] Loaded PrivateKey: {key}");
+                        var other = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
+                        if (!File.Exists(other))
+                            File.WriteAllText(other, key);
                         return key;
                     }
+                }
 
-                    return "";
-                }
-                else
+                var OtherGame = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
+                if (File.Exists(OtherGame))
                 {
-                    File.WriteAllText(FilePath, "");
-                    return "";
+                    var key = File.ReadAllText(OtherGame).Trim();
+                    {
+                        File.WriteAllText(FilePath, key);
+                        return key;
+                    }
                 }
+
+                var newKey = Guid.NewGuid().ToString("N");
+                File.WriteAllText(FilePath, newKey);
+                File.WriteAllText(OtherGame, newKey);
+                return newKey;
             }
             catch (Exception ex)
             {
-                MelonLogger.Error("[AirlockFriends] Error reading PrivateKey: " + ex);
+                MelonLogger.Error("[AirlockFriends] Error reading: " + ex);
                 return "";
             }
         }
@@ -113,5 +123,15 @@ namespace AirlockFriends.Managers
             }
         }
 
+        public static string Encrypt(string input)
+        {
+            using SHA256 Key = SHA256.Create();
+            byte[] bytes = Encoding.UTF8.GetBytes(input);
+            byte[] hash = Key.ComputeHash(bytes);
+            StringBuilder sb = new StringBuilder();
+            foreach (byte bit in hash)
+                sb.Append(bit.ToString("x2"));
+            return sb.ToString();
+        }
     }
 }
