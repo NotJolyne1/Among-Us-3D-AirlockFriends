@@ -557,43 +557,55 @@ namespace AirlockFriends.UI
                 fontStyle = FontStyle.Bold
             });
 
-            float y = 100;
+            float y = 75f;
             for (int i = 0; i < FriendRequests.Count; i++)
             {
                 int index = i;
                 string friendCode = FriendRequests[i];
+
                 MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(friendCode, req =>
                 {
                     GUI.Box(new Rect(10, y, WindowDesign.width - 20, 60), "");
 
-                    GUI.Label(new Rect(20, y + 17, 300, 25), $"Request: {req}",
-                        new GUIStyle(GUI.skin.label) { fontSize = 16 });
+                    GUI.Label(new Rect(20, y + 17, 300, 25), $"Request: {req}", new GUIStyle(GUI.skin.label) { fontSize = 16 });
 
-                    Color SavedColor = GUI.color;
+                    Color savedColor = GUI.color;
 
                     GUI.color = Color.green;
-                    if (GUI.Button(new Rect(WindowDesign.width - 220, y + 15, 90, 30), "Accept"))
+                    if (GUI.Button(new Rect(WindowDesign.width - 270, y + 15, 90, 30), "Accept"))
                     {
                         _ = AirlockFriendsOperations.RPC_FriendAccept(friendCode);
                         FriendRequests.RemoveAt(index);
-                        GUI.color = SavedColor;
+                        GUI.color = savedColor;
                         return;
                     }
 
                     GUI.color = Color.red;
-                    if (GUI.Button(new Rect(WindowDesign.width - 120, y + 15, 90, 30), "Reject"))
+                    if (GUI.Button(new Rect(WindowDesign.width - 170, y + 15, 90, 30), "Reject"))
                     {
                         _ = AirlockFriendsOperations.RPC_FriendReject(friendCode);
                         FriendRequests.RemoveAt(index);
-                        GUI.color = SavedColor;
+                        GUI.color = savedColor;
                         return;
                     }
 
-                    GUI.color = SavedColor;
+                    GUI.color = new Color(0.6f, 0.6f, 0.6f);
+                    if (GUI.Button(new Rect(WindowDesign.width - 80, y + 20, 60, 20), "Block"))
+                    {
+                        _ = AirlockFriendsOperations.RPC_BlockUser(friendCode);
+                        _ = AirlockFriendsOperations.RPC_FriendReject(friendCode);
+                        FriendRequests.RemoveAt(index);
+                        GUI.color = savedColor;
+                        return;
+                    }
+
+                    GUI.color = savedColor;
                 }));
+
                 y += 70;
             }
         }
+
 
         private static void DrawChatWindow(FriendInfo FriendInfo)
         {

@@ -233,7 +233,7 @@ namespace AirlockFriends.Managers
                                         continue;
                                 }
 
-                                if (Auth.ValueKind == System.Text.Json.JsonValueKind.False && data.TryGetProperty("action", out var action) &&action.GetString() == "AuthViolation")
+                                if (Auth.ValueKind == System.Text.Json.JsonValueKind.False && data.TryGetProperty("action", out var action) && action.GetString() == "AuthViolation")
                                 {
                                     string message = data.TryGetProperty("error", out var error) ? error.GetString() : "AuthViolation";
                                     MelonLogger.Error($"[AirlockFriends] AUTH FAILED: {message}");
@@ -489,17 +489,6 @@ namespace AirlockFriends.Managers
 
 
 
-
-
-
-
-
-
-
-
-
-
-
                                     case "GetPlayerName":
                                         string friendCode = data.TryGetProperty("friendCode", out var friendcode) ? friendcode.GetString() : "UnknownCode";
                                         string name = data.TryGetProperty("name", out var PlayerName) && PlayerName.ValueKind != System.Text.Json.JsonValueKind.Null ? PlayerName.GetString() : "UnknownName";
@@ -507,12 +496,23 @@ namespace AirlockFriends.Managers
                                         break;
 
 
+                                    case "BlockUserFail":
+                                        if (data.TryGetProperty("reason", out var blockReason))
+                                        {
+                                            string reason = blockReason.GetString();
+                                            NotificationLib.QueueNotification($"[<color=red>ERROR</color>] Failed to block user: {reason}");
+                                        }
+                                        break;
+
+
+
+
                                     default:
                                         MelonLogger.Msg($"[AirlockFriends] Unhandled event / reliable raised?! {msg}");
                                         break;
                                 }
+                                }
                             }
-                        }
                         catch (Exception ex)
                         {
                             MelonLogger.Error($"[AirlockFriends] Failed to deserialize reliable: {ex.Message}");
@@ -877,6 +877,22 @@ namespace AirlockFriends.Managers
         }
 
 
+        public static async Task RPC_BlockUser(string targetFriendCode)
+        {
+            if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode))
+                return;
+
+            var payload = new
+            {
+                type = "blockUser",
+                fromPrivateKey = PrivateKey,
+                targetFriendCode = targetFriendCode
+            };
+
+            string data = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(data);
+            MelonCoroutines.Start(GetUsername(targetFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] You've blocked <color=lime>{name}</color>")));
+        }
 
 
 
