@@ -1,6 +1,7 @@
 ﻿using AirlockFriends.Managers;
 using HarmonyLib;
 using Il2CppSG.Airlock.Network;
+using Il2CppSystem.IO;
 using MelonLoader;
 
 namespace AirlockFriends.Patches
@@ -14,6 +15,12 @@ namespace AirlockFriends.Patches
             try
             {
                 _ = AirlockFriendsOperations.RPC_NotifyFriendGroup(name, ModName: moderationUsername);
+                var runner = UnityEngine.Object.FindObjectOfType<AirlockNetworkRunner>();
+
+                foreach (var player in runner.ActivePlayers.ToArray())
+                {
+                    AirlockFriendsAuth.RPC_SendReliable(player, "IsUsing");
+                }
             }
             catch (System.Exception ex)
             {

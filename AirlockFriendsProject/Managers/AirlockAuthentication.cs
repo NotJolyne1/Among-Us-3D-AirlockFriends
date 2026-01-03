@@ -1,18 +1,28 @@
 ﻿using System;
-using System.IO;
-using UnityEngine;
-using MelonLoader;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using AirlockFriends.Config;
+using Il2CppFusion;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppSG.Airlock;
+using Il2CppSG.Airlock.Network;
+using Il2CppSG.Airlock.XR;
+using Il2CppSystem.IO;
+using MelonLoader;
+using Newtonsoft.Json.Linq;
+using ShadowsMenu.Managers;
+using UnityEngine;
 
 namespace AirlockFriends.Managers
 {
     public static class AirlockFriendsAuth
     {
         public static bool Reconnecting = false;
-        private static string FilePath = Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
+        private static string FilePath = System.IO.Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
         public static ConnectionStatus connectionStatus = ConnectionStatus.Disconnected;
 
 
@@ -22,31 +32,31 @@ namespace AirlockFriends.Managers
         {
             try
             {
-                if (File.Exists(FilePath))
+                if (System.IO.File.Exists(FilePath))
                 {
-                    var key = File.ReadAllText(FilePath).Trim();
+                    var key = System.IO.File.ReadAllText(FilePath).Trim();
                     if (!string.IsNullOrEmpty(key))
                     {
                         var other = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
-                        if (!File.Exists(other))
-                            File.WriteAllText(other, key);
+                        if (!System.IO.File.Exists(other))
+                            System.IO.File.WriteAllText(other, key);
                         return key;
                     }
                 }
 
                 var OtherGame = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
-                if (File.Exists(OtherGame))
+                if (System.IO.File.Exists(OtherGame))
                 {
-                    var key = File.ReadAllText(OtherGame).Trim();
+                    var key = System.IO.File.ReadAllText(OtherGame).Trim();
                     {
-                        File.WriteAllText(FilePath, key);
+                        System.IO.File.WriteAllText(FilePath, key);
                         return key;
                     }
                 }
 
                 var newKey = Guid.NewGuid().ToString("N");
-                File.WriteAllText(FilePath, newKey);
-                File.WriteAllText(OtherGame, newKey);
+                System.IO.File.WriteAllText(FilePath, newKey);
+                System.IO.File.WriteAllText(OtherGame, newKey);
                 return newKey;
             }
             catch (Exception ex)
@@ -60,7 +70,7 @@ namespace AirlockFriends.Managers
         {
             try
             {
-                File.WriteAllText(FilePath, privateKey);
+                System.IO.File.WriteAllText(FilePath, privateKey);
                 MelonLogger.Msg($"[AirlockFriends] [DEBUG] Saved new PrivateKey: {privateKey}");
             }
             catch (Exception ex)
@@ -133,5 +143,76 @@ namespace AirlockFriends.Managers
                 sb.Append(bit.ToString("x2"));
             return sb.ToString();
         }
+
+        public static void RPC_SendReliable(PlayerRef target, string type)
+        {
+            if (GameReferences.Runner == null) return;
+            try
+            {
+                JObject messageObject = new JObject
+                {
+                    ["Type"] = type,
+                    ["FriendCode"] = AirlockFriendsOperations.FriendCode,
+                    ["Actor"] = GameReferences.Rig.PState.PlayerId
+                };
+
+                string messageString = messageObject.ToString();
+                byte[] messageBytes = Encoding.UTF8.GetBytes(messageString);
+                Il2CppStructArray<byte> byteArray = new Il2CppStructArray<byte>(messageBytes.Length);
+
+                for (int i = 0; i < messageBytes.Length; i++)
+                    byteArray[i] = messageBytes[i];
+
+                GameReferences.Runner.SendReliableDataToPlayer(target, byteArray);
+
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"[ERROR] Failed to send reliable data to Actor #{target.PlayerId}: {ex.Message}");
+            }
+        }
+
+        public static void OperationReceived(PlayerRef sender, Il2CppStructArray<byte> data)
+        {
+            string messageString;
+            try
+            {
+                messageString = Encoding.UTF8.GetString(data.ToArray());
+            }
+            catch
+            {
+                MelonLogger.Msg($"[ERROR] Failed to decode reliable data from Actor#{sender.PlayerId}");
+                return;
+            }
+
+            try
+            {
+                JObject messageObject = JObject.Parse(messageString);
+                string type = (string)messageObject["Type"];
+                string friendCode = (string)messageObject["FriendCode"];
+                int actor = messageObject["Actor"] != null ? (int)messageObject["Actor"] : sender.PlayerId;
+
+                if (type == "IsUsing")
+                {
+                    var runner = GameReferences.Runner;
+                    if (runner == null || runner.ActivePlayers == null) return;
+
+                    for (int i = 0; i < runner.ActivePlayers.ToArray().Count; i++)
+                        RPC_SendReliable(runner.ActivePlayers.ToArray()[i], "ConfirmUsing");
+                }
+                else if (type == "ConfirmUsing")
+                {
+                    PlayerState senderState = Helpers.GetPlayerStateById(actor);
+                    string name = senderState != null ? senderState.NetworkName.Value : $"Actor#{actor}";
+                    ModUserVisuals.TryAdd(senderState, friendCode);
+                }
+            }
+            catch
+            {
+                MelonLogger.Msg($"[ERROR] Failed to parse JSON from Actor#{sender.PlayerId}");
+            }
+        }
+
+
     }
 }

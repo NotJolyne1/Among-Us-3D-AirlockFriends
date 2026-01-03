@@ -769,9 +769,6 @@ namespace AirlockFriends.Managers
                 return;
             JoinRequestTime = Time.realtimeSinceStartup;
 
-            string username = string.Empty;
-            MelonCoroutines.Start(GetUsername(targetFriendCode, name => username = name));
-
             var payload = new
             {
                 type = "joinRequest",
@@ -781,7 +778,7 @@ namespace AirlockFriends.Managers
 
             string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
             await RaiseEvent(EventData);
-            NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{username}</color>");
+            NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{GetFriend(targetFriendCode).Name}</color>");
         }
 
 
@@ -789,8 +786,6 @@ namespace AirlockFriends.Managers
         public static async Task RPC_SendInvite(string targetFriendCode, string roomID)
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
-            string username = string.Empty;
-            MelonCoroutines.Start(GetUsername(targetFriendCode, name => username = name));
 
             if (Time.realtimeSinceStartup - InviteTime < 5f)
                 return;
@@ -806,7 +801,7 @@ namespace AirlockFriends.Managers
 
             string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
             await RaiseEvent(EventData);
-            NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{username}</color>");
+            NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{GetFriend(targetFriendCode).Name}</color>");
         }
 
 
@@ -888,7 +883,7 @@ namespace AirlockFriends.Managers
         // this took too long to make and understand lmao
         public static IEnumerator GetUsername(string friendCode, System.Action<string> Callback)
         {
-            if (GetNameFromID.TryGetValue(friendCode, out var name))
+            if (GetNameFromID.TryGetValue(friendCode, out var name) && !string.IsNullOrEmpty(name))
             {
                 Callback?.Invoke(name);
                 yield break;
@@ -900,16 +895,19 @@ namespace AirlockFriends.Managers
                 _ = RPC_GetUsername(friendCode);
             }
 
-            float AttemptTime = 0f;
-            while (!GetNameFromID.TryGetValue(friendCode, out name) && AttemptTime < 5)
+            float elapsedTime = 0f;
+            while ((!GetNameFromID.TryGetValue(friendCode, out name) || string.IsNullOrEmpty(name)) && elapsedTime < 5f)
             {
-                AttemptTime += 0.1f;
+                elapsedTime += 0.1f;
                 yield return new WaitForSeconds(0.1f);
             }
+
             if (string.IsNullOrEmpty(name))
                 name = friendCode;
+
             Callback?.Invoke(name);
         }
+
 
 
 

@@ -71,7 +71,7 @@ namespace AirlockFriends
             try
             {
                 NotificationLib.Update();
-
+                ModUserVisuals.Update();
                 if (Keyboard.current.f1Key.wasPressedThisFrame || Keyboard.current.slashKey.wasPressedThisFrame)
                     GUIEnabled = !GUIEnabled;
 
@@ -114,6 +114,7 @@ namespace AirlockFriends
                 MelonLogger.Warning($"[FAIL] Something went wrong! Failed at ModManager.Update(), error: {e}");
                 GUI.color = OriginalColor;
             }
+            GUI.color = OriginalColor;
         }
     }
 }

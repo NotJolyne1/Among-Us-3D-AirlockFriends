@@ -5,10 +5,13 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using AirlockFriends.Config;
 using AirlockFriends.Managers;
+using Il2CppFusion;
 using Il2CppSG.Airlock;
 using Il2CppSG.Airlock.Network;
 using Il2CppSG.Airlock.XR;
+using Il2CppSystem.IO;
 using MelonLoader;
+using Newtonsoft.Json.Linq;
 using ShadowsMenu.Managers;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -506,11 +509,12 @@ namespace AirlockFriends.UI
                 GUI.color = Color.cyan;
                 if (GUI.Button(new Rect(280 + 2 * (70 + 10), y + 12, 70, 30), "Join Req"))
                 {
-                    foreach (PlayerState player in GameReferences.Spawn.ActivePlayerStates)
-                        ModUserVisuals.TryAdd(player);
-                    //_ = AirlockFriendsOperations.RPC_RequestJoin(FriendData.FriendCode);
-
+                    if (FriendData.Status == "Online")
+                        _ = AirlockFriendsOperations.RPC_RequestJoin(FriendData.FriendCode);
+                    else
+                        NotificationLib.QueueNotification($"[<color=red>ERROR</color>] <color=lime>{FriendData.Name}</color> is offline!");
                 }
+
 
                 if (GUI.Button(new Rect(280 + 3 * (70 + 10), y + 12, 70, 30), "Invite"))
                 {
@@ -518,9 +522,10 @@ namespace AirlockFriends.UI
                     {
                         try
                         {
-                            var Network = UnityEngine.Object.FindObjectOfType<AirlockNetworkRunner>();
-                            string MyRoomID = Network.SessionInfo.Name;
-                            _ = AirlockFriendsOperations.RPC_SendInvite(FriendData.FriendCode, MyRoomID);
+                            if (FriendData.Status == "Online")
+                                _ = AirlockFriendsOperations.RPC_SendInvite(FriendData.FriendCode, GameReferences.Runner.SessionInfo.Name);
+                            else
+                                NotificationLib.QueueNotification($"[<color=red>ERROR</color>] <color=lime>{FriendData.Name}</color> is offline!");
                         }
                         catch (Exception ex)
                         {
@@ -535,9 +540,6 @@ namespace AirlockFriends.UI
                 GUI.color = SavedColor;
                 y += 60;
             }
-            // thing
-
-
             GUI.EndScrollView();
             GUI.EndGroup();
         }
