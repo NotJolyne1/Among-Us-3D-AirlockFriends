@@ -215,6 +215,22 @@ namespace AirlockFriends.Managers
                                         }
                                     }
 
+                                    if (data.TryGetProperty("blocked", out var BlockedList) && BlockedList.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                    {
+                                        BlockedUsers.Clear();
+                                        foreach (var blockedFriendCode in BlockedList.EnumerateArray())
+                                        {
+                                            string targetFriendCode = blockedFriendCode.GetString();
+                                            if (!string.IsNullOrEmpty(targetFriendCode))
+                                            {
+                                                MelonCoroutines.Start(GetUsername(targetFriendCode, name =>
+                                                {
+                                                    BlockedUsers[targetFriendCode] = name;
+                                                }));
+                                            }
+                                        }
+                                    }
+
                                     if (Main.AFBanned)
                                     {
                                         Main.AFBanned = false;
@@ -497,14 +513,20 @@ namespace AirlockFriends.Managers
 
 
                                     case "BlockUserFail":
-                                        if (data.TryGetProperty("reason", out var blockReason))
+                                        if (data.TryGetProperty("reason", out var blockFailReason))
                                         {
-                                            string reason = blockReason.GetString();
+                                            string reason = blockFailReason.GetString();
                                             NotificationLib.QueueNotification($"[<color=red>ERROR</color>] Failed to block user: {reason}");
                                         }
                                         break;
 
-
+                                    case "UnblockUserFail":
+                                        if (data.TryGetProperty("reason", out var UnblockFailReason))
+                                        {
+                                            string reason = UnblockFailReason.GetString();
+                                            NotificationLib.QueueNotification($"[<color=red>ERROR</color>] Failed to unblock user: {reason}");
+                                        }
+                                        break;
 
 
                                     default:
@@ -894,6 +916,22 @@ namespace AirlockFriends.Managers
             MelonCoroutines.Start(GetUsername(targetFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] You've blocked <color=lime>{name}</color>")));
         }
 
+        public static async Task RPC_UnblockUser(string targetFriendCode)
+        {
+            if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode))
+                return;
+
+            var payload = new
+            {
+                type = "unblockUser",
+                fromPrivateKey = PrivateKey,
+                targetFriendCode = targetFriendCode
+            };
+
+            string data = System.Text.Json.JsonSerializer.Serialize(payload);
+            await RaiseEvent(data);
+            MelonCoroutines.Start(GetUsername(targetFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] You've unblocked <color=lime>{name}</color>")));
+        }
 
 
         // this took too long to make and understand lmao
