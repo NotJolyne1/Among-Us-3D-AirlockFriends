@@ -268,6 +268,8 @@ namespace AirlockFriends.UI
             }
 
 
+            if (CurrentChatOpen == null) GUI.Label(new Rect(WindowDesign.width - 170, WindowDesign.height - 22, 160, 18), "Toggle UI: F1 or /", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.LowerRight, fontSize = 11, normal = { textColor = new Color(1f, 1f, 1f, 0.35f) } }
+);
 
 
             if (NewName)
@@ -359,7 +361,7 @@ namespace AirlockFriends.UI
 
             if (!FriendRequestsPage)
             {
-                if (GUI.Button(new Rect(10, 10, 150, 30), $"Friend Requests ({FriendRequests.Count})"))
+                if (GUI.Button(new Rect(10, 10, 150, 30), $"Friend Requests [{FriendRequests.Count}]"))
                 {
                     FriendRequestsPage = true;
                     NewFriendRequest = false;
@@ -516,14 +518,7 @@ namespace AirlockFriends.UI
 
             if (friends.Count == 0)
             {
-                GUI.Label(new Rect(0, 50, WindowDesign.width, 40),
-                    "<size=17>There's no one here, <b>yet</b></size>", new GUIStyle(GUI.skin.label)
-                    {
-                        alignment = TextAnchor.UpperCenter,
-                        richText = true,
-                        fontSize = 14,
-                        normal = { textColor = new Color(0.65f, 0.65f, 0.65f, 0.8f) }
-                    });
+                GUI.Label(new Rect(0, 50, WindowDesign.width, 40), "<size=17>There's no one here, <b>yet</b></size>", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, richText = true, fontSize = 14, normal = { textColor = new Color(0.65f, 0.65f, 0.65f, 0.8f) }});
                 return;
             }
 
@@ -624,6 +619,12 @@ namespace AirlockFriends.UI
                 fontStyle = FontStyle.Bold
             });
 
+            if (FriendRequests.Count <= 0)
+            {
+                GUI.Label(new Rect(0, 60, WindowDesign.width, 40), $"<size=17>There's no one here, <b>yet</b></size>\nBy the way, your friend code is: {AirlockFriendsOperations.FriendCode}", new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, richText = true, fontSize = 14, normal = { textColor = new Color(0.65f, 0.65f, 0.65f, 0.8f) } });
+                return;
+            }
+
             float y = 75f;
             for (int i = 0; i < FriendRequests.Count; i++)
             {
@@ -639,34 +640,36 @@ namespace AirlockFriends.UI
                     Color SavedColor = GUI.color;
 
                     GUI.color = Color.green;
-                    if (GUI.Button(new Rect(WindowDesign.width - 270, y + 15, 90, 30), "Accept"))
-                    {
-                        _ = AirlockFriendsOperations.RPC_FriendAccept(friendCode);
-                        FriendRequests.RemoveAt(FriendIndex);
-                        GUI.color = SavedColor;
-                        return;
-                    }
+if (GUI.Button(new Rect(WindowDesign.width - 270, y + 15, 90, 30), "Accept"))
+{
+    _ = AirlockFriendsOperations.RPC_FriendAccept(friendCode);
+    GUI.color = SavedColor;
+    return;
+}
 
-                    GUI.color = Color.red;
-                    if (GUI.Button(new Rect(WindowDesign.width - 170, y + 15, 90, 30), "Reject"))
-                    {
-                        _ = AirlockFriendsOperations.RPC_FriendReject(friendCode);
-                        FriendRequests.RemoveAt(FriendIndex);
-                        return;
-                    }
+GUI.color = Color.white;
+GUI.backgroundColor = new Color(0.8f, 0.3f, 0.3f);
+if (GUI.Button(new Rect(WindowDesign.width - 170, y + 15, 90, 30), "Reject"))
+{
+    _ = AirlockFriendsOperations.RPC_FriendReject(friendCode);
+    GUI.color = SavedColor;
+    GUI.backgroundColor = Color.white;
+    return;
+}
 
-                    if (GUI.Button(new Rect(WindowDesign.width - 80, y + 20, 60, 20), "Block"))
-                    {
-                        _ = AirlockFriendsOperations.RPC_BlockUser(friendCode);
-                        _ = AirlockFriendsOperations.RPC_FriendReject(friendCode);
-                        FriendRequests.RemoveAt(FriendIndex);
-                        MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(friendCode, name =>
-                        {
-                            BlockedUsers[friendCode] = name;
-                        })); 
-                        GUI.color = SavedColor;
-                        return;
-                    }
+GUI.backgroundColor = Color.white;
+if (GUI.Button(new Rect(WindowDesign.width - 75, y + 15, 60, 30), "Block"))
+{
+    _ = AirlockFriendsOperations.RPC_BlockUser(friendCode);
+    _ = AirlockFriendsOperations.RPC_FriendReject(friendCode);
+    MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(friendCode, name =>
+    {
+        BlockedUsers[friendCode] = name;
+    }));
+    GUI.color = SavedColor;
+    return;
+}
+
 
                     GUI.color = SavedColor;
                 }));
@@ -1113,14 +1116,21 @@ namespace AirlockFriends.UI
             {
                 NewName = true;
             }
-            GUI.backgroundColor = Color.white;
+
+            var SavedColor = GUI.color;
+            GUI.color = Settings.GUIColor;
+
+            bool DarkMode = Settings.GUIColor == Color.blue;
+            if (GUI.Button(new Rect(Panel.x + Panel.width - 250, Panel.y + 10, 110, 28), DarkMode ? "Dark Mode" : "Light Mode"))
+            {
+                Settings.GUIColor = DarkMode ? Color.cyan : Color.blue;
+                _ = AirlockFriendsOperations.RPC_UpdateSettings(_allowFriendRequests, JoinSettings[JoinIndex], _allowMessages, _allowInvites);
+            }
+            GUI.color = SavedColor;
 
             GUI.backgroundColor = new Color(0.2f, 0.6f, 1f);
             if (GUI.Button(new Rect(Panel.x + 25, Panel.y + Panel.height - 42f, 150f, 35f), "Apply Settings"))
-            {
                 _ = AirlockFriendsOperations.RPC_UpdateSettings(_allowFriendRequests, JoinSettings[JoinIndex], _allowMessages, _allowInvites);
-                NotificationLib.QueueNotification("[<color=lime>SUCCESS</color>] Your settings have been updated.");
-            }
 
             GUI.backgroundColor = new Color(0.8f, 0.3f, 0.3f);
             if (GUI.Button(new Rect(Panel.x + 190, Panel.y + Panel.height - 42f, 150f, 35f), "Blocked Users"))

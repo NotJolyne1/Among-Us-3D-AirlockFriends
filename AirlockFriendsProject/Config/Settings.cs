@@ -10,7 +10,7 @@ namespace AirlockFriends.Config
         public const string Version = "0.9";
 
         public static bool GUIEnabled = true;
-        public static Color GUIColor = Color.blue;
+        public static Color GUIColor = Color.cyan;
         public static int GUIColorInt = 0;
         public static float RainbowColor = 0f; 
 

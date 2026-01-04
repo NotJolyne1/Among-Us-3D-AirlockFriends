@@ -20,14 +20,11 @@ namespace AirlockFriends
 {
     public class Main : MelonMod
     {
-        private Texture2D _roundedRectTexture;
-
         private float nextFpsUpdateTime = 0f;
         private int frames = 0;
         private int fps = 0;
         public static bool passed = true;
         public static bool PostVersion = false;
-        private bool cached = false;
         public static CSteamID cachedId;
         public static bool AFBanned = false;
         public static bool HasShownBanNoti = false;

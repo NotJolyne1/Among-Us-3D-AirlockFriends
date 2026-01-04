@@ -3,32 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using AirlockFriends.Config;
 using AirlockFriends.UI;
-using Il2CppFusion;
-using Il2CppSG.Airlock;
-using Il2CppSG.Airlock.Graphics;
 using Il2CppSG.Airlock.Network;
-using Il2CppSG.Airlock.Roles;
-using Il2CppSG.Airlock.Sabotage;
-using Il2CppSG.Airlock.UI.TitleScreen;
 using Il2CppSG.Airlock.XR;
-using Il2CppSteamworks;
 using MelonLoader;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using UnityEngine;
 using static AirlockFriends.Managers.AirlockFriendsAuth;
 using static AirlockFriends.UI.FriendGUI;
-using static Il2CppSystem.Net.WebSockets.ManagedWebSocket;
-using static UnityEngine.GraphicsBuffer;
-using static UnityEngine.InputSystem.InputRemoting;
 
 namespace AirlockFriends.Managers
 {
@@ -66,7 +53,7 @@ namespace AirlockFriends.Managers
                 var checks = new List<string> { name };
                 checks.Add(new string(name.Where(char.IsLetter).ToArray()));
 
-                foreach (var check in checks)
+                foreach (string check in checks)
                 {
                     foreach (string block in UnwantedNames)
                     {
@@ -83,7 +70,6 @@ namespace AirlockFriends.Managers
                 return false;
             }
         }
-
 
 
         public static async void PrepareAuthentication()
@@ -194,7 +180,13 @@ namespace AirlockFriends.Managers
                                     if (data.TryGetProperty("AllowInvites", out var AllowInvite))
                                         AllowInvites = AllowInvite.GetBoolean();
 
-                                    if (data.TryGetProperty("Name", out var Name))
+                                    if (data.TryGetProperty("ColorMode", out var ColorMode))
+                                    {
+                                        string mode = ColorMode.GetString();
+                                        Settings.GUIColor = mode == "light" ? Color.cyan : Color.blue;
+                                    }
+
+                                    if (data.TryGetProperty("Name", out JsonElement Name))
                                     {
                                         MyName = Name.GetString();
                                         if (MyName == FriendCode)
@@ -203,9 +195,9 @@ namespace AirlockFriends.Managers
                                         }
                                     }
 
-                                    if (data.TryGetProperty("friendsList", out var FriendsList) && FriendsList.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                    if (data.TryGetProperty("friendsList", out JsonElement FriendsList) && FriendsList.ValueKind == System.Text.Json.JsonValueKind.Array)
                                     {
-                                        foreach (var friend in FriendsList.EnumerateArray())
+                                        foreach (JsonElement friend in FriendsList.EnumerateArray())
                                         {
                                             string friendCode = friend.GetProperty("friendCode").GetString();
                                             MelonCoroutines.Start(GetUsername(friendCode, name =>
@@ -215,7 +207,7 @@ namespace AirlockFriends.Managers
                                         }
                                     }
 
-                                    if (data.TryGetProperty("blocked", out var BlockedList) && BlockedList.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                    if (data.TryGetProperty("blocked", out JsonElement BlockedList) && BlockedList.ValueKind == System.Text.Json.JsonValueKind.Array)
                                     {
                                         BlockedUsers.Clear();
                                         foreach (var blockedFriendCode in BlockedList.EnumerateArray())
@@ -264,16 +256,16 @@ namespace AirlockFriends.Managers
 
                             }
 
-                            if (data.TryGetProperty("type", out var FriendType))
+                            if (data.TryGetProperty("type", out var Event))
                             {
-                                string type = FriendType.GetString();
+                                string type = Event.GetString();
 
                                 switch (type)
                                 {
                                     case "friendRequestReceived":
-                                        if (data.TryGetProperty("fromFriendCode", out var fromFR))
+                                        if (data.TryGetProperty("fromFriendCode", out var Requesting))
                                         {
-                                            string Requester = fromFR.GetString();
+                                            string Requester = Requesting.GetString();
                                             RPC_OnRequestReceived(Requester);
                                             MelonCoroutines.Start(GetUsername(Requester, name => NotificationLib.QueueNotification($"[<color=magenta>FRIEND REQUEST</color>] <color=lime>{name}</color> wants to friend you!")));
                                         }
@@ -308,7 +300,8 @@ namespace AirlockFriends.Managers
                                             string AcceptingFriend = Sender.GetString();
                                             MelonCoroutines.Start(GetUsername(AcceptingFriend, friendName =>
                                             {
-                                                UpdateFriend(friendName, "Online", AcceptingFriend, "");
+                                                UpdateFriend(friendName, "Loading..", AcceptingFriend, "");
+                                                _ = RPC_NotifyFriendGroup(updateSelf: false);
                                                 MelonLogger.Msg($"[AirlockFriends] Friend accepted: {friendName} ({AcceptingFriend})");
                                                 NotificationLib.QueueNotification($"[<color=lime>FRIEND ACCEPTED</color>] <color=lime>{friendName} ({AcceptingFriend})</color> is now your friend!");
                                             }));
@@ -528,6 +521,18 @@ namespace AirlockFriends.Managers
                                         }
                                         break;
 
+                                    case "updateSettingsResponce":
+                                        if (data.TryGetProperty("reason", out var SettingsResponce) && data.TryGetProperty("status", out var UpdatedStatus))
+                                        {
+                                            string reason = SettingsResponce.GetString();
+                                            string status = UpdatedStatus.GetString();
+
+                                            if (status == "failed")
+                                                NotificationLib.QueueNotification($"[<color=red>ERROR</color>] Failed to update settings! {reason}");
+                                            else
+                                                NotificationLib.QueueNotification("[<color=lime>SUCCESS</color>] Your settings have been updated.");
+                                        }
+                                        break;
 
                                     default:
                                         MelonLogger.Msg($"[AirlockFriends] Unhandled event / reliable raised?! {msg}");
@@ -680,7 +685,7 @@ namespace AirlockFriends.Managers
             string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
             MelonLogger.Msg($"[AirlockFriends] Removed friend {RemovingFriend}");
-            MelonCoroutines.Start(AirlockFriendsOperations.GetUsername(RemovingFriend, name => NotificationLib.QueueNotification($"[<color=red>UNFRIEND</color>] Unfriended {name}")));
+            MelonCoroutines.Start(GetUsername(RemovingFriend, name => NotificationLib.QueueNotification($"[<color=red>UNFRIEND</color>] Unfriended <color=lime>{name}</color>")));
         }
 
 
@@ -722,7 +727,8 @@ namespace AirlockFriends.Managers
                 AllowFriendRequests = AllowFriendRequests,
                 JoinPrivacy = JoinPrivacy,
                 AllowMessages = AllowMessages,
-                AllowInvites = AllowInvites
+                AllowInvites = AllowInvites,
+                ColorMode = Settings.GUIColor == Color.cyan ? "light" : "dark"
             };
 
             try
