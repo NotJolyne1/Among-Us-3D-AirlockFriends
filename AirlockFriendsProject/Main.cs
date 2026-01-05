@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Linq.Expressions;
 using AirlockFriends.Config;
 using AirlockFriends.Managers;
-using Il2CppSG.Airlock.UI.TitleScreen;
 using Il2CppSteamworks;
 using MelonLoader;
 using ShadowsMenu.Managers;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.PlayerLoop;
 using static AirlockFriends.Config.GameReferences;
 using static AirlockFriends.Config.Settings;
 
@@ -20,27 +17,28 @@ namespace AirlockFriends
 {
     public class Main : MelonMod
     {
-        private float nextFpsUpdateTime = 0f;
-        private int frames = 0;
-        private int fps = 0;
         public static bool passed = true;
         public static bool PostVersion = false;
         public static CSteamID cachedId;
         public static bool AFBanned = false;
         public static bool HasShownBanNoti = false;
         private static bool NotifyingFriends = false;
+        public static bool outdated = false;
+        public static bool UpdateRequired = false;
+        public static bool BetaBuild = false;
+
         public override void OnApplicationQuit()
         {
-			MelonLogger.Msg("Thank you for using Airlock Friends!");
+			Logging.Msg("Thank you for using Airlock Friends!");
         }
 
         [System.Obsolete]
         public override void OnApplicationStart()
         {
-            MelonLogger.Msg("Loading Airlock Friends..");
+            Logging.Msg("Loading Airlock Friends..");
             IsVR = UnityEngine.Application.productName.Contains("VR");
+            FetchServerData();
         }
-
 
         public override void OnSceneWasInitialized(int buildIndex, string sceneName)
         {
@@ -58,7 +56,7 @@ namespace AirlockFriends
             }
             catch (Exception ex) 
             {
-                MelonLogger.Error($"Failed to get friends: {ex}");
+                Logging.Error($"Failed to get friends: {ex}");
             }
         }
 
@@ -76,18 +74,17 @@ namespace AirlockFriends
                     GameRefsFound = false;
 
                 if (InGame && !GameRefsFound)
+                {
                     refreshGameRefs();
-
+                    ModUserVisuals.CleanupAll();
+                }
             }
             catch { }
         }
 
-
-
-
         public override void OnGUI()
         {
-            var OriginalColor = GUI.color;
+            Color OriginalColor = GUI.color;
             GUI.color = GUIColor;
             if (!GUIEnabled || !passed)
             {
@@ -108,10 +105,55 @@ namespace AirlockFriends
             }
             catch (System.Exception e)
             {
-                MelonLogger.Warning($"[FAIL] Something went wrong! Failed at ModManager.Update(), error: {e}");
+                Logging.Warning($"Something went wrong! Failed at ModManager.Update(), error: {e}");
                 GUI.color = OriginalColor;
             }
             GUI.color = OriginalColor;
+        }
+
+        private static async void FetchServerData()
+        {
+            try
+            {
+                using (var client = new System.Net.Http.HttpClient())
+                {
+                    var text = await client.GetStringAsync("https://notjolyne.neocities.org/ServerData.txt");
+                    var lines = text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (lines.Length < 2)
+                        return;
+
+                    System.Version ServerVersion = new System.Version(lines[0].Trim());
+                    System.Version MinimumVersion = new System.Version(lines[1].Trim());
+                    System.Version LocalVersion = new System.Version(Settings.Version);
+
+
+                    if (LocalVersion < MinimumVersion)
+                    {
+                        UpdateRequired = true;
+                        Logging.Msg("Client is using a unstable version");
+                        NotificationLib.QueueNotification("[<color=red>OUTDATED</color>] You are using a outdated version!\nThis version is <b>UNSTABLE</b> and you're <b>required</b> to update in the Discord/GitHub<");
+                    }
+                    else if (LocalVersion < ServerVersion)
+                    {
+                        outdated = true;
+                        Logging.Msg("Client is outdated");
+                        NotificationLib.QueueNotification("[<color=red>OUTDATED</color>] You are using a outdated version!\nPlease update in the <b>Discord/GitHub</b>");
+                    }
+                    else if (LocalVersion > ServerVersion)
+                    {
+                        BetaBuild = true;
+                        NotificationLib.QueueNotification("[<color=magenta>BETA</color>] You are using a beta build!");
+                        Logging.Msg("Client is a beta build");
+                    }
+                    else
+                        Logging.Msg("Client is up to date");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logging.Error($"ServerData error: {ex.Message}");
+            }
         }
     }
 }

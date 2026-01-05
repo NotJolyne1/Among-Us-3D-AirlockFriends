@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using MelonLoader;
 using AirlockFriends.Config;
 using UnityEngine;
 
@@ -9,17 +8,16 @@ namespace AirlockFriends.Managers
 {
     public class NotificationLib : MonoBehaviour
     {
-        private class Notification
-        {
-            public TextMesh textMesh;
-            public float SpawnTime;
-        }
-
         private static GameObject textHolder;
         private static List<Notification> Notifications = new List<Notification>();
         private static bool initialized = false;
         private static Font font;
         private static ConcurrentQueue<string> QueuedMessages = new ConcurrentQueue<string>();
+        private class Notification
+        {
+            public TextMesh textMesh;
+            public float SpawnTime;
+        }
 
         public static void QueueNotification(string text, bool force = false)
         {

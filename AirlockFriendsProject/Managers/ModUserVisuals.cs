@@ -2,8 +2,6 @@
 using AirlockFriends.Config;
 using AirlockFriends.Managers;
 using Il2CppSG.Airlock;
-using Il2CppSG.Airlock.Network;
-using MelonLoader;
 using UnityEngine;
 using static AirlockFriends.UI.FriendGUI;
 
@@ -16,10 +14,8 @@ namespace ShadowsMenu.Managers
 
         public static void TryAdd(PlayerState PState, string FriendID = "")
         {
-            if (!Settings.InGame || PState == null || !PState.IsConnected || PState.IsSpectating)
+            if (!Settings.InGame || PState == null || PState == GameReferences.Rig.PState || !PState.IsConnected || PState.IsSpectating)
                 return;
-
-            int playerId = PState.PlayerId;
 
             bool isFriend = false;
             if (!string.IsNullOrEmpty(FriendID))
@@ -34,7 +30,7 @@ namespace ShadowsMenu.Managers
                 }
             }
 
-            if (AFUserTags.TryGetValue(playerId, out var existingMesh) && existingMesh != null)
+            if (AFUserTags.TryGetValue(PState.PlayerId, out var existingMesh) && existingMesh != null)
             {
                 existingMesh.text = isFriend ? "Friend" : "AirlockFriendsUser";
                 existingMesh.color = isFriend ? Color.yellow : Color.magenta;
@@ -45,7 +41,7 @@ namespace ShadowsMenu.Managers
             if (parent == null)
                 return;
 
-            var textObj = new GameObject($"AFTagText ({playerId})");
+            var textObj = new GameObject($"AFTagText ({PState.PlayerId})");
             textObj.transform.SetParent(parent, false);
             textObj.transform.localPosition = TagHighPos;
 
@@ -58,7 +54,7 @@ namespace ShadowsMenu.Managers
             mesh.text = isFriend ? "Friend" : "AirlockFriendsUser";
             mesh.color = isFriend ? Color.yellow : Color.magenta;
 
-            AFUserTags[playerId] = mesh;
+            AFUserTags[PState.PlayerId] = mesh;
 
             if (isFriend)
                 NotificationLib.QueueNotification($"[<color=lime>Friend</color>] <color=lime>{GetFriend(FriendID).Name}</color> is in your room!");
@@ -69,21 +65,23 @@ namespace ShadowsMenu.Managers
             if (PState == null)
                 return;
 
-            int playerId = PState.PlayerId;
-
-            if (AFUserTags.TryGetValue(playerId, out var mesh) && mesh != null)
+            if (AFUserTags.TryGetValue(PState.PlayerId, out var mesh) && mesh != null)
                 Object.Destroy(mesh.gameObject);
 
-            AFUserTags.Remove(playerId);
+            AFUserTags.Remove(PState.PlayerId);
         }
 
         public static void CleanupAll()
         {
-            foreach (var mesh in AFUserTags.Values)
-                if (mesh != null)
-                    Object.Destroy(mesh.gameObject);
+            try
+            {
+                foreach (var mesh in AFUserTags.Values)
+                    if (mesh != null)
+                        Object.Destroy(mesh.gameObject);
 
-            AFUserTags.Clear();
+                AFUserTags.Clear();
+            }
+            catch { }
         }
 
         public static void Update()

@@ -1,8 +1,5 @@
-﻿using AirlockFriends.Managers;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Il2CppFusion;
-using Il2CppSG.Airlock.Network;
-using MelonLoader;
 using ShadowsMenu.Managers;
 
 namespace AirlockFriends.Patches

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using AirlockFriends.Managers;
+﻿using AirlockFriends.Managers;
 using HarmonyLib;
 using Il2CppFusion;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using MelonLoader;
 
 namespace ShadowsMenu.Patches
 {

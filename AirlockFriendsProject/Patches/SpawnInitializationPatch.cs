@@ -2,7 +2,6 @@
 using HarmonyLib;
 using Il2CppSG.Airlock.Network;
 using Il2CppSystem.IO;
-using MelonLoader;
 
 namespace AirlockFriends.Patches
 {
@@ -19,12 +18,12 @@ namespace AirlockFriends.Patches
 
                 foreach (var player in runner.ActivePlayers.ToArray())
                 {
-                    AirlockFriendsAuth.RPC_SendReliable(player, "IsUsing");
+                    AirlockFriendsAuth.RPC_SendReliableData(player, "IsUsing");
                 }
             }
             catch (System.Exception ex)
             {
-                MelonLogger.Error($"Failed to get friends: {ex}");
+                Logging.Error($"Failed to get friends: {ex}");
             }
         }
     }

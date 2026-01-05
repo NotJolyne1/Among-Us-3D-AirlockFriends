@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,10 +7,7 @@ using AirlockFriends.Config;
 using Il2CppFusion;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppSG.Airlock;
-using Il2CppSG.Airlock.Network;
-using Il2CppSG.Airlock.XR;
 using Il2CppSystem.IO;
-using MelonLoader;
 using Newtonsoft.Json.Linq;
 using ShadowsMenu.Managers;
 using UnityEngine;
@@ -37,9 +32,9 @@ namespace AirlockFriends.Managers
                     var key = System.IO.File.ReadAllText(FilePath).Trim();
                     if (!string.IsNullOrEmpty(key))
                     {
-                        var other = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
-                        if (!System.IO.File.Exists(other))
-                            System.IO.File.WriteAllText(other, key);
+                        var OtherGamePath = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
+                        if (!System.IO.File.Exists(OtherGamePath))
+                            System.IO.File.WriteAllText(OtherGamePath, key);
                         return key;
                     }
                 }
@@ -61,7 +56,7 @@ namespace AirlockFriends.Managers
             }
             catch (Exception ex)
             {
-                MelonLogger.Error("[AirlockFriends] Error reading: " + ex);
+                Logging.Error("Error reading: " + ex);
                 return "";
             }
         }
@@ -71,11 +66,11 @@ namespace AirlockFriends.Managers
             try
             {
                 System.IO.File.WriteAllText(FilePath, privateKey);
-                MelonLogger.Msg($"[AirlockFriends] [DEBUG] Saved new PrivateKey: {privateKey}");
+                Logging.DebugLog($"Saved new private key: {privateKey}");
             }
             catch (Exception ex)
             {
-                MelonLogger.Error("[AirlockFriends] [DEBUG] Failed to save PrivateKey: " + ex);
+                Logging.Error($"Failed to save private token: {ex.Message}");
             }
         }
 
@@ -103,9 +98,9 @@ namespace AirlockFriends.Managers
             int connectionAttempts = 0;
             if (!NotCrash && !Main.AFBanned)
             {
-                MelonLogger.Warning("[AirlockFriends] Connection to the server was lost! Attempting to reconnect...");
-                MelonLogger.Warning("[AirlockFriends] This can be due to a server restart, maintenance, or the server being updated.");
-                MelonLogger.Warning("[AirlockFriends] No action is needed on your part, just allow the server to restart which will be quick if this was planned.");
+                Logging.Warning("Connection to the server was lost! Attempting to reconnect...");
+                Logging.Warning("This can be due to a server restart, maintenance, or the server being updated.");
+                Logging.Warning("No action is needed on your part, just allow the server to restart which will be quick if this was planned.");
             }
 
             while (!AirlockFriendsOperations.IsConnected)
@@ -118,7 +113,7 @@ namespace AirlockFriends.Managers
                 yield return new WaitForSeconds(2f);
             }
             Reconnecting = false;
-            MelonLogger.Msg("[AirlockFriends] Successfully reconnected!");
+            Logging.Msg("Successfully reconnected!");
         }
 
         public static IEnumerator NotifyFriendGroup()
@@ -144,7 +139,7 @@ namespace AirlockFriends.Managers
             return sb.ToString();
         }
 
-        public static void RPC_SendReliable(PlayerRef target, string type)
+        public static void RPC_SendReliableData(PlayerRef target, string type)
         {
             if (GameReferences.Runner == null) return;
             try
@@ -168,7 +163,7 @@ namespace AirlockFriends.Managers
             }
             catch (Exception ex)
             {
-                MelonLogger.Error($"[ERROR] Failed to send reliable data to Actor #{target.PlayerId}: {ex.Message}");
+                Logging.Error($"Failed to send reliable data to Actor #{target.PlayerId}, please report this to the discord or github issues tab!: {ex.Message}");
             }
         }
 
@@ -181,7 +176,7 @@ namespace AirlockFriends.Managers
             }
             catch
             {
-                MelonLogger.Msg($"[ERROR] Failed to decode reliable data from Actor#{sender.PlayerId}");
+                Logging.Msg($"Failed to decode reliable data from Actor#{sender.PlayerId}");
                 return;
             }
 
@@ -198,7 +193,7 @@ namespace AirlockFriends.Managers
                     if (runner == null || runner.ActivePlayers == null) return;
 
                     for (int i = 0; i < runner.ActivePlayers.ToArray().Count; i++)
-                        RPC_SendReliable(runner.ActivePlayers.ToArray()[i], "ConfirmUsing");
+                        RPC_SendReliableData(runner.ActivePlayers.ToArray()[i], "ConfirmUsing");
                 }
                 else if (type == "ConfirmUsing")
                 {
@@ -209,10 +204,8 @@ namespace AirlockFriends.Managers
             }
             catch
             {
-                MelonLogger.Msg($"[ERROR] Failed to parse JSON from Actor#{sender.PlayerId}");
+                Logging.Error($"Failed to parse data from Actor#{sender.PlayerId}, please report this!");
             }
         }
-
-
     }
 }

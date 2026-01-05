@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace AirlockFriends.Config
 {
     internal class Settings
     {
-        public const string Version = "1.0";
+        public const string Version = "1.1";
 
         public static bool GUIEnabled = true;
         public static Color GUIColor = Color.cyan;
@@ -17,6 +14,7 @@ namespace AirlockFriends.Config
         public static bool IsVR = false;
         public static bool InGame = false;
         public static bool GameRefsFound = false;
+        public static bool DebugMode = false;
 
         public static string messageFriend = "";
         public static string friendCodeTyped = "";
