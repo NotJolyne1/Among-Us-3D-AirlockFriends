@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AirlockFriends.Config;
 using UnityEngine;
@@ -27,7 +26,7 @@ namespace AirlockFriends.Managers
 
         public static void SendNotification(string text, bool force = false)
         {
-            if (!Settings.ShowNotifications && !force) 
+            if (!Settings.ShowNotifications && !force)
                 return;
 
             try
@@ -132,7 +131,7 @@ namespace AirlockFriends.Managers
             while (QueuedMessages.TryDequeue(out string noti))
                 SendNotification(noti);
 
-            if (!initialized || Camera.main == null) 
+            if (!initialized || Camera.main == null)
                 return;
 
             for (int i = Notifications.Count - 1; i >= 0; i--)

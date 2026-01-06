@@ -135,7 +135,7 @@ namespace AirlockFriends.Managers
             {
                 try
                 {
-                    var result = await socket.ReceiveAsync(buffer, cts.Token);
+                    WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, cts.Token);
 
                     if (result.MessageType == WebSocketMessageType.Close)
                         break;
@@ -247,7 +247,7 @@ namespace AirlockFriends.Managers
 
                                     if (message.Contains("New user"))
                                         NotificationLib.QueueNotification("[<color=magenta>WELCOME</color>] Welcome to Airlock Friends!");
-                                        continue;
+                                    continue;
                                 }
 
                                 if (Auth.ValueKind == System.Text.Json.JsonValueKind.False && data.TryGetProperty("action", out var action) && action.GetString() == "AuthViolation")
@@ -547,8 +547,8 @@ namespace AirlockFriends.Managers
                                         Logging.Warning($"Unhandled event / reliable data raised?! Please report this. {msg}");
                                         break;
                                 }
-                                }
                             }
+                        }
                         catch (Exception ex)
                         {
                             Logging.Error($"Failed to deserialize reliable data: {ex.Message}");
@@ -621,7 +621,7 @@ namespace AirlockFriends.Managers
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(message) || string.IsNullOrEmpty(FriendCode))
                 return;
 
-            var payload = new
+            var request = new
             {
                 type = "sendMessage",
                 targetFriendCode = targetFriendCode,
@@ -630,7 +630,7 @@ namespace AirlockFriends.Managers
                 message = message
             };
 
-            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
             Logging.DebugLog($"Sent message to {targetFriendCode}: {message}");
         }
@@ -660,14 +660,14 @@ namespace AirlockFriends.Managers
             if (string.IsNullOrEmpty(incomingFriendCode) || string.IsNullOrEmpty(FriendCode))
                 return;
 
-            var payload = new
+            var request = new
             {
                 type = "friendReject",
                 fromPrivateKey = PrivateKey,
                 rejectFriendCode = incomingFriendCode
             };
 
-            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
             FriendRequests.Remove(incomingFriendCode);
             Logging.DebugLog($"Rejected friend request from {incomingFriendCode}");
@@ -724,7 +724,7 @@ namespace AirlockFriends.Managers
             if (allowMessages.HasValue) AllowMessages = allowMessages.Value;
             if (allowInvites.HasValue) AllowInvites = allowInvites.Value;
 
-            var payload = new
+            var request = new
             {
                 type = "updateSettings",
                 fromPrivateKey = PrivateKey,
@@ -737,7 +737,7 @@ namespace AirlockFriends.Managers
 
             try
             {
-                string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+                string EventData = System.Text.Json.JsonSerializer.Serialize(request);
                 await RaiseEvent(EventData);
                 Logging.DebugLog($"Sent updated settings to server: FriendRequests {AllowFriendRequests}, JoinPrivacy {JoinPrivacy}, Messages {AllowMessages}, Invites {AllowInvites}");
             }
@@ -780,14 +780,14 @@ namespace AirlockFriends.Managers
                 }
             }
 
-            var payload = new
+            var request = new
             {
                 type = "getFriends",
                 fromPrivateKey = PrivateKey,
                 currentName = MyName
             };
 
-            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
         }
 
@@ -797,18 +797,18 @@ namespace AirlockFriends.Managers
         public static async Task RPC_RequestJoin(string targetFriendCode)
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
-            if (Time.realtimeSinceStartup - JoinRequestTime < 5f)
+            if (Time.realtimeSinceStartup - JoinRequestTime < 1f)
                 return;
             JoinRequestTime = Time.realtimeSinceStartup;
 
-            var payload = new
+            var request = new
             {
                 type = "joinRequest",
                 fromPrivateKey = PrivateKey,
                 targetFriendCode = targetFriendCode
             };
 
-            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
             NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{GetFriend(targetFriendCode).Name}</color>");
         }
@@ -819,11 +819,11 @@ namespace AirlockFriends.Managers
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
 
-            if (Time.realtimeSinceStartup - InviteTime < 5f)
+            if (Time.realtimeSinceStartup - InviteTime < 1f)
                 return;
             InviteTime = Time.realtimeSinceStartup;
 
-            var payload = new
+            var request = new
             {
                 type = "sendInvite",
                 fromPrivateKey = PrivateKey,
@@ -831,7 +831,7 @@ namespace AirlockFriends.Managers
                 roomID = roomID
             };
 
-            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
             NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{GetFriend(targetFriendCode).Name}</color>");
         }
@@ -842,7 +842,7 @@ namespace AirlockFriends.Managers
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
 
-            var payload = new
+            var request = new
             {
                 type = "inviteResponse",
                 fromPrivateKey = PrivateKey,
@@ -850,7 +850,7 @@ namespace AirlockFriends.Managers
                 accepted = accepted
             };
 
-            string EventData = System.Text.Json.JsonSerializer.Serialize(payload);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
         }
 
@@ -870,7 +870,7 @@ namespace AirlockFriends.Managers
             else if (InGame)
                 MelonCoroutines.Start(GetUsername(senderFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Rejected {name}'s join request")));
 
-            var payload = new
+            var request = new
             {
                 type = "joinRequestResponse",
                 fromPrivateKey = PrivateKey,
@@ -880,12 +880,12 @@ namespace AirlockFriends.Managers
                 inGame = InGame
             };
 
-            var options = new System.Text.Json.JsonSerializerOptions
+            JsonSerializerOptions options = new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
             };
 
-            string EventData = System.Text.Json.JsonSerializer.Serialize(payload, options);
+            string EventData = System.Text.Json.JsonSerializer.Serialize(request, options);
             await RaiseEvent(EventData);
 
             Logging.DebugLog($"Responded to join request from {senderFriendCode}: {(accepted ? $"accepted room {roomCode}" : "rejected")}");
@@ -914,14 +914,14 @@ namespace AirlockFriends.Managers
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode))
                 return;
 
-            var payload = new
+            var request = new
             {
                 type = "blockUser",
                 fromPrivateKey = PrivateKey,
                 targetFriendCode = targetFriendCode
             };
 
-            string data = System.Text.Json.JsonSerializer.Serialize(payload);
+            string data = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(data);
             MelonCoroutines.Start(GetUsername(targetFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] You've blocked <color=lime>{name}</color>")));
         }
@@ -931,14 +931,14 @@ namespace AirlockFriends.Managers
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode))
                 return;
 
-            var payload = new
+            var request = new
             {
                 type = "unblockUser",
                 fromPrivateKey = PrivateKey,
                 targetFriendCode = targetFriendCode
             };
 
-            string data = System.Text.Json.JsonSerializer.Serialize(payload);
+            string data = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(data);
             MelonCoroutines.Start(GetUsername(targetFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] You've unblocked <color=lime>{name}</color>")));
         }

@@ -1,7 +1,7 @@
-﻿using Il2CppFusion;
+﻿using AirlockFriends.Config;
+using Il2CppFusion;
 using Il2CppSG.Airlock;
 using Il2CppSG.Airlock.Network;
-using AirlockFriends.Config;
 using Il2CppSteamworks;
 
 namespace AirlockFriends

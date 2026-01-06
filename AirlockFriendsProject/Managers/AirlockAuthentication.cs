@@ -32,14 +32,14 @@ namespace AirlockFriends.Managers
                     var key = System.IO.File.ReadAllText(FilePath).Trim();
                     if (!string.IsNullOrEmpty(key))
                     {
-                        var OtherGamePath = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
+                        string OtherGamePath = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
                         if (!System.IO.File.Exists(OtherGamePath))
                             System.IO.File.WriteAllText(OtherGamePath, key);
                         return key;
                     }
                 }
 
-                var OtherGame = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
+                string OtherGame = FilePath.Contains("3D") ? FilePath.Replace("3D", "VR") : FilePath.Replace("VR", "3D");
                 if (System.IO.File.Exists(OtherGame))
                 {
                     var key = System.IO.File.ReadAllText(OtherGame).Trim();
@@ -49,7 +49,8 @@ namespace AirlockFriends.Managers
                     }
                 }
 
-                var newKey = Guid.NewGuid().ToString("N");
+                // unused, client no longer handles key generation
+                string newKey = Guid.NewGuid().ToString("N");
                 System.IO.File.WriteAllText(FilePath, newKey);
                 System.IO.File.WriteAllText(OtherGame, newKey);
                 return newKey;
@@ -128,6 +129,7 @@ namespace AirlockFriends.Managers
             }
         }
 
+        // Not used, yet.
         public static string Encrypt(string input)
         {
             using SHA256 Key = SHA256.Create();
@@ -199,6 +201,7 @@ namespace AirlockFriends.Managers
                 {
                     PlayerState senderState = Helpers.GetPlayerStateById(actor);
                     string name = senderState != null ? senderState.NetworkName.Value : $"Actor#{actor}";
+                    ModUserVisuals.CleanupAll();
                     ModUserVisuals.TryAdd(senderState, friendCode);
                 }
             }

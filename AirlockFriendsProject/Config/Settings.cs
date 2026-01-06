@@ -9,7 +9,7 @@ namespace AirlockFriends.Config
         public static bool GUIEnabled = true;
         public static Color GUIColor = Color.cyan;
         public static int GUIColorInt = 0;
-        public static float RainbowColor = 0f; 
+        public static float RainbowColor = 0f;
 
         public static bool IsVR = false;
         public static bool InGame = false;
@@ -21,7 +21,7 @@ namespace AirlockFriends.Config
         public static string messageContent = "";
         public static string FriendRequestText = "";
 
-		public static bool CodeRecievced = false;
+        public static bool CodeRecievced = false;
         public static string CurrentRoom = "Not in a room";
 
         public static float NotiDuration = 4.3f;

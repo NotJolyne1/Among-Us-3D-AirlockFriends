@@ -29,7 +29,7 @@ namespace AirlockFriends
 
         public override void OnApplicationQuit()
         {
-			Logging.Msg("Thank you for using Airlock Friends!");
+            Logging.Msg("Thank you for using Airlock Friends!");
         }
 
         [System.Obsolete]
@@ -51,10 +51,10 @@ namespace AirlockFriends
                 if (!NotifyingFriends)
                 {
                     NotifyingFriends = true;
-					MelonCoroutines.Start(AirlockFriendsAuth.NotifyFriendGroup());
+                    MelonCoroutines.Start(AirlockFriendsAuth.NotifyFriendGroup());
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 Logging.Error($"Failed to get friends: {ex}");
             }
