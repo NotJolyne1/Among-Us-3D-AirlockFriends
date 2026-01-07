@@ -95,7 +95,7 @@ namespace AirlockFriends.Managers
 
                 try
                 {
-                    var serverUri = new Uri("wss://airlockfriends.xyz");
+                    Uri serverUri = new Uri("wss://airlockfriends.xyz");
                     await socket.ConnectAsync(serverUri, cts.Token);
                     Logging.Msg("Connected to friends websocket server");
                     _ = Task.Run(ReceiveLoop);
@@ -243,7 +243,7 @@ namespace AirlockFriends.Managers
                                     _ = RPC_NotifyFriendGroup();
 
                                     if (message.Contains("New user"))
-                                        NotificationLib.QueueNotification("[<color=magenta>WELCOME</color>] Welcome to Airlock Friends!");
+                                        NotificationLib.QueueNotification("[<color=magenta>WELCOME</color>] Welcome to <color=magenta>Airlock Friends</color>!");
                                     continue;
                                 }
 
