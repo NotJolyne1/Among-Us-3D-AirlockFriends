@@ -27,10 +27,7 @@ namespace AirlockFriends
         public static bool UpdateRequired = false;
         public static bool BetaBuild = false;
 
-        public override void OnApplicationQuit()
-        {
-            Logging.Msg("Thank you for using Airlock Friends!");
-        }
+        public override void OnApplicationQuit() => Logging.Msg("Thank you for using Airlock Friends!");
 
         [System.Obsolete]
         public override void OnApplicationStart()
@@ -51,7 +48,7 @@ namespace AirlockFriends
                 if (!NotifyingFriends)
                 {
                     NotifyingFriends = true;
-                    MelonCoroutines.Start(AirlockFriendsAuth.NotifyFriendGroup());
+                    MelonCoroutines.Start(AirlockFriendsAuth.IncrementalFriendPing());
                 }
             }
             catch (Exception ex)
@@ -95,7 +92,6 @@ namespace AirlockFriends
             try
             {
                 UI.FriendGUI.Update();
-
                 if (AFBanned && !HasShownBanNoti)
                 {
                     HasShownBanNoti = true;
@@ -137,17 +133,17 @@ namespace AirlockFriends
                     else if (LocalVersion < ServerVersion)
                     {
                         outdated = true;
-                        Logging.Msg("Client is outdated");
+                        Logging.Msg("Version is outdated");
                         NotificationLib.QueueNotification("[<color=red>OUTDATED</color>] You are using a outdated version!\nPlease update in the <b>Discord/GitHub</b>");
                     }
                     else if (LocalVersion > ServerVersion)
                     {
                         BetaBuild = true;
                         NotificationLib.QueueNotification("[<color=magenta>BETA</color>] You are using a beta build!");
-                        Logging.Msg("Client is a beta build");
+                        Logging.Msg("Client is on a beta build");
                     }
                     else
-                        Logging.Msg("Client is up to date");
+                        Logging.Msg("Version is up to date");
                 }
             }
             catch (Exception ex)

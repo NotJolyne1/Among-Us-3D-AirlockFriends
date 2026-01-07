@@ -51,7 +51,7 @@ namespace AirlockFriends
             }
             catch
             {
-                return "null";
+                return "";
             }
         }
     }

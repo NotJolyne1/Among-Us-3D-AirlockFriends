@@ -20,9 +20,6 @@ namespace AirlockFriends.Managers
         private static string FilePath = System.IO.Path.Combine(Application.persistentDataPath, "AirlockFriendsPrivateKey.txt");
         public static ConnectionStatus connectionStatus = ConnectionStatus.Disconnected;
 
-
-
-
         public static string PrepareAuthenticationKey()
         {
             try
@@ -48,16 +45,11 @@ namespace AirlockFriends.Managers
                         return key;
                     }
                 }
-
-                // unused, client no longer handles key generation
-                string newKey = Guid.NewGuid().ToString("N");
-                System.IO.File.WriteAllText(FilePath, newKey);
-                System.IO.File.WriteAllText(OtherGame, newKey);
-                return newKey;
+                return "";
             }
             catch (Exception ex)
             {
-                Logging.Error("Error reading: " + ex);
+                Logging.Error($"Error reading: {ex.Message}");
                 return "";
             }
         }
@@ -95,7 +87,6 @@ namespace AirlockFriends.Managers
             if (Main.AFBanned)
                 connectionStatus = ConnectionStatus.Rejected;
 
-
             int connectionAttempts = 0;
             if (!NotCrash && !Main.AFBanned)
             {
@@ -117,7 +108,7 @@ namespace AirlockFriends.Managers
             Logging.Msg("Successfully reconnected!");
         }
 
-        public static IEnumerator NotifyFriendGroup()
+        public static IEnumerator IncrementalFriendPing()
         {
             while (true)
             {
@@ -129,16 +120,16 @@ namespace AirlockFriends.Managers
             }
         }
 
-        // Not used, yet.
+        // Not used yet
         public static string Encrypt(string input)
         {
             using SHA256 Key = SHA256.Create();
             byte[] bytes = Encoding.UTF8.GetBytes(input);
             byte[] hash = Key.ComputeHash(bytes);
-            StringBuilder sb = new StringBuilder();
+            StringBuilder Builder = new StringBuilder();
             foreach (byte bit in hash)
-                sb.Append(bit.ToString("x2"));
-            return sb.ToString();
+                Builder.Append(bit.ToString("x2"));
+            return Builder.ToString();
         }
 
         public static void RPC_SendReliableData(PlayerRef target, string type)
@@ -161,7 +152,6 @@ namespace AirlockFriends.Managers
                     byteArray[i] = messageBytes[i];
 
                 GameReferences.Runner.SendReliableDataToPlayer(target, byteArray);
-
             }
             catch (Exception ex)
             {
@@ -201,7 +191,6 @@ namespace AirlockFriends.Managers
                 {
                     PlayerState senderState = Helpers.GetPlayerStateById(actor);
                     string name = senderState != null ? senderState.NetworkName.Value : $"Actor#{actor}";
-                    ModUserVisuals.CleanupAll();
                     ModUserVisuals.TryAdd(senderState, friendCode);
                 }
             }

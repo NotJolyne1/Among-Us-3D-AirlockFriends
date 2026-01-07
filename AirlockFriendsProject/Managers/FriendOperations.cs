@@ -40,9 +40,9 @@ namespace AirlockFriends.Managers
         private static Dictionary<string, string> GetNameFromID = new Dictionary<string, string>();
         public static HashSet<string> GettingNames = new();
         public static event Action<string, string> OnUsernameUpdated;
-
         public static bool IsConnected => socket != null && socket.State == WebSocketState.Open;
 
+        // not used bc you choose youre own name
         public static bool IsUnwantedName(string name)
         {
             try
@@ -143,7 +143,7 @@ namespace AirlockFriends.Managers
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
                         string msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        if (!msg.Contains("friendsList")) Logging.DebugLog($"[DEBUG] Server sent reliable data: {msg}");
+                        if (!msg.Contains("friendsList")) Logging.DebugLog($"Server sent reliable data: {msg}");
                         if (msg.Contains("This account"))
                             Main.AFBanned = true;
 
@@ -199,10 +199,7 @@ namespace AirlockFriends.Managers
                                         foreach (JsonElement friend in FriendsList.EnumerateArray())
                                         {
                                             string friendCode = friend.GetProperty("friendCode").GetString();
-                                            MelonCoroutines.Start(GetUsername(friendCode, name =>
-                                            {
-                                                Logging.DebugLog($"Friend loaded: {name} ({friendCode})");
-                                            }));
+                                            MelonCoroutines.Start(GetUsername(friendCode, name => { Logging.DebugLog($"Friend loaded: {name} ({friendCode})"); }));
                                         }
                                     }
 
@@ -216,7 +213,7 @@ namespace AirlockFriends.Managers
                                             RequestCount++;
                                         }
                                         if (RequestCount > 0)
-                                            NotificationLib.QueueNotification($"<color=magenta>REQUESTS</color> you have <color=lime>{RequestCount}</color> friend request(s)");
+                                            NotificationLib.QueueNotification($"[<color=magenta>FRIEND REQUEST</color>] you have <color=lime>{RequestCount}</color> friend request(s)");
                                     }
 
                                     if (data.TryGetProperty("blocked", out var BlockedList) && BlockedList.ValueKind == System.Text.Json.JsonValueKind.Array)
@@ -465,8 +462,6 @@ namespace AirlockFriends.Managers
                                         break;
 
 
-
-
                                     case "inviteResponseResult":
                                         {
                                             if (!data.TryGetProperty("fromFriendCode", out var SenderFriend) || !data.TryGetProperty("accepted", out var InviteAccepted))
@@ -493,8 +488,6 @@ namespace AirlockFriends.Managers
 
 
 
-
-
                                     case "inviteReceived":
                                         if (data.TryGetProperty("fromFriendCode", out var fromWho) && data.TryGetProperty("roomID", out var RoomID))
                                         {
@@ -504,7 +497,6 @@ namespace AirlockFriends.Managers
                                             ReceiveInvite(FriendID, roomCode);
                                         }
                                         break;
-
 
 
                                     case "GetPlayerName":
@@ -636,8 +628,6 @@ namespace AirlockFriends.Managers
         }
 
 
-
-
         public static async Task RPC_FriendAccept(string AcceptingFriend)
         {
             if (string.IsNullOrEmpty(AcceptingFriend) || string.IsNullOrEmpty(FriendCode)) return;
@@ -655,6 +645,7 @@ namespace AirlockFriends.Managers
 
             FriendRequests.Remove(AcceptingFriend);
         }
+
         public static async Task RPC_FriendReject(string incomingFriendCode)
         {
             if (string.IsNullOrEmpty(incomingFriendCode) || string.IsNullOrEmpty(FriendCode))
@@ -673,7 +664,6 @@ namespace AirlockFriends.Managers
             Logging.DebugLog($"Rejected friend request from {incomingFriendCode}");
         }
 
-
         public static async Task RPC_FriendRemove(string RemovingFriend)
         {
             if (string.IsNullOrEmpty(RemovingFriend) || string.IsNullOrEmpty(FriendCode)) return;
@@ -685,7 +675,6 @@ namespace AirlockFriends.Managers
                 removeFriendCode = RemovingFriend
             };
 
-
             string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
             Logging.DebugLog($"Removed friend {RemovingFriend}");
@@ -693,31 +682,10 @@ namespace AirlockFriends.Managers
         }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         public static async Task RPC_UpdateSettings(bool? allowFriendRequests = null, string joinPrivacy = null, bool? allowMessages = null, bool? allowInvites = null)
         {
-            if (!IsConnected || socket == null) return;
+            if (!IsConnected || socket == null)
+                return;
 
             if (allowFriendRequests.HasValue) AllowFriendRequests = allowFriendRequests.Value;
             if (!string.IsNullOrEmpty(joinPrivacy)) JoinPrivacy = joinPrivacy;
@@ -746,11 +714,6 @@ namespace AirlockFriends.Managers
                 Logging.Error($"Failed to send updated settings: {ex}");
             }
         }
-
-
-
-
-
 
         public static async Task RPC_NotifyFriendGroup(string name = "", bool updateSelf = true, string ModName = "", string customName = "")
         {
@@ -790,7 +753,6 @@ namespace AirlockFriends.Managers
             string EventData = System.Text.Json.JsonSerializer.Serialize(request);
             await RaiseEvent(EventData);
         }
-
 
 
         private static float JoinRequestTime = -999f;
@@ -836,8 +798,6 @@ namespace AirlockFriends.Managers
             NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Sent join request to <color=lime>{GetFriend(targetFriendCode).Name}</color>");
         }
 
-
-
         public static async Task RPC_RespondToInvite(string targetFriendCode, bool accepted)
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode)) return;
@@ -867,7 +827,7 @@ namespace AirlockFriends.Managers
                     MelonCoroutines.Start(GetUsername(senderFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Accepted {name}'s join request")));
                 }
             }
-            else if (InGame)
+            else if (InGame) 
                 MelonCoroutines.Start(GetUsername(senderFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] Rejected {name}'s join request")));
 
             var request = new
@@ -908,7 +868,6 @@ namespace AirlockFriends.Managers
             }
         }
 
-
         public static async Task RPC_BlockUser(string targetFriendCode)
         {
             if (string.IsNullOrEmpty(targetFriendCode) || string.IsNullOrEmpty(FriendCode))
@@ -943,7 +902,6 @@ namespace AirlockFriends.Managers
             MelonCoroutines.Start(GetUsername(targetFriendCode, name => NotificationLib.QueueNotification($"[<color=lime>SUCCESS</color>] You've unblocked <color=lime>{name}</color>")));
         }
 
-
         public static IEnumerator GetUsername(string friendCode, System.Action<string> Callback)
         {
             if (GetNameFromID.TryGetValue(friendCode, out var name) && !string.IsNullOrEmpty(name))
@@ -971,9 +929,6 @@ namespace AirlockFriends.Managers
             Callback?.Invoke(name);
         }
 
-
-
-
         public static void SaveUsername(string friendCode, string name)
         {
             if (!string.IsNullOrEmpty(friendCode))
@@ -983,7 +938,6 @@ namespace AirlockFriends.Managers
                 OnUsernameUpdated?.Invoke(friendCode, name);
             }
         }
-
 
         public static async Task Disconnect(bool force = false, bool rejected = false)
         {
